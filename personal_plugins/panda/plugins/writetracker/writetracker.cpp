@@ -12,6 +12,7 @@ static target_ulong range_end;
 static std::ofstream ofs;
 
 static std::unique_ptr<std::ofstream> output;
+using namespace std;
 
 enum event_type : int {
   WRITE,
@@ -27,7 +28,7 @@ struct write_data_st {
     bool is_flushed;
 };
 
-map<char *, write_data_st*> snapshot_map;
+std::map<char *, write_data_st*> snapshot_map;
 
 // **********
 
@@ -39,14 +40,13 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
 
     // ******* New code:
 
-    write_data_st * wdst = malloc(sizeof(write_data_st));
-    wdst->data = malloc(size);
-    memcpy(wdst->data, write_data, write_size);
-    snapshot_map.insert(pair<char *,write_data_st*>(*(reinterpret_cast<char*>(&offset)), wdst));
+    int size = *reinterpret_cast<char *>(write_size);
+    write_data_st * wdst = (struct write_data_st *) malloc(sizeof(struct write_data_st));
+    wdst->data = (char *) malloc(size);
+    memcpy(wdst->data, reinterpret_cast<char*>(write_data), size);
+    snapshot_map.insert(std::pair<char *, struct write_data_st *>(reinterpret_cast<char*>(&offset), wdst));
 
     // **********
-
-
 
     output->write(reinterpret_cast<char*>(&offset), sizeof(offset));
     output->write(reinterpret_cast<char*>(&write_size), sizeof(write_size));
@@ -64,6 +64,17 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
     break;
   }
 }
+
+static void print_snapshot_map() {
+
+    std::cout << "\n\n***** Printing Snapshot Map *****\n";
+    std::map<char *, struct write_data_st *>::iterator it;
+    for ( it = snapshot_map.begin(); it != snapshot_map.end(); ++it) {
+  std::cout << it->first << " => " << it->second << "\n";
+    }   
+    std::cout << "\nEnd of snapshot map\n";
+}
+
 
 extern "C" int mem_write_callback(CPUState *env, target_ulong pc, target_ulong pa,
                        target_ulong size, void *buf) {
@@ -98,30 +109,30 @@ static bool check_flush(CPUState *env, target_ulong pc, bool is_translate) {
   }
 
  if (insn[0] >= 0x88 && insn[0] <= 0x8F){
-	ofs << "\n" << std::hex << static_cast<int>(insn[1]) << " : Store; ";
-	if (insn[1]==0x6 || insn[1]==0x7){
-		ofs << std::hex << static_cast<int>(insn[0]) << " : is the start ins";;
-		uint8_t rm = insn[1] & 7;
-		auto target_reg = reg_from_rm(rm);
-         	target_ulong va = x86_env->regs[target_reg];
-         	target_ulong pa = panda_virt_to_phys(env, va);
-    		//if (pa >= range_start && pa < range_end) {
-			ofs << "\n\tPhy addr = " << pa;
-		//}
-	}
+  ofs << "\n" << std::hex << static_cast<int>(insn[1]) << " : Store; ";
+  if (insn[1]==0x6 || insn[1]==0x7){
+    ofs << std::hex << static_cast<int>(insn[0]) << " : is the start ins";;
+    uint8_t rm = insn[1] & 7;
+    auto target_reg = reg_from_rm(rm);
+          target_ulong va = x86_env->regs[target_reg];
+          target_ulong pa = panda_virt_to_phys(env, va);
+        //if (pa >= range_start && pa < range_end) {
+      ofs << "\n\tPhy addr = " << pa;
+    //}
+  }
  }
 
  if (insn[0] >= 0xA0 && insn[0] <= 0xA5){
-	ofs << "\n" << std::hex << static_cast<int>(insn[1]) << " : Store-A\n";
+  ofs << "\n" << std::hex << static_cast<int>(insn[1]) << " : Store-A\n";
  }
- if ( insn[0] == 0x0F)	
+ if ( insn[0] == 0x0F)  
   {
-	ofs << std::hex << static_cast<int>(insn[1]) <<" : Could be MovNTI";
-	uint8_t rm = insn[2] & 7;
-	auto target_reg = reg_from_rm(rm);
+  ofs << std::hex << static_cast<int>(insn[1]) <<" : Could be MovNTI";
+  uint8_t rm = insn[2] & 7;
+  auto target_reg = reg_from_rm(rm);
          target_ulong va = x86_env->regs[target_reg];
          target_ulong pa = panda_virt_to_phys(env, va);
-	ofs << "\t Phy addr = " << pa;	
+  ofs << "\t Phy addr = " << pa;  
   }
   
   if (insn[0] == 0x0F && insn[1] == 0xAE)
@@ -232,6 +243,11 @@ extern "C" bool init_plugin(void *self) {
 }
 
 extern "C" void uninit_plugin(void *self) {
+    
+    // Printing snapshot map
+    print_snapshot_map();
+
+    // Existing code
     output.reset();
     ofs.close();
     panda_disable_memcb();
