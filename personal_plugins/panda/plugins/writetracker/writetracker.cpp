@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <memory>
 #include <map>
-
+#include <vector>
 #include "panda/plugin.h"
 
 static target_ulong range_start;
@@ -25,26 +25,43 @@ enum event_type : int {
 
 struct write_data_st {
     char * data;
+    size_t data_length;
     bool is_flushed;
 };
 
+// key is offset into pmdec, val is write_data_st which has pointer to data which was written
 std::map<char *, write_data_st*> snapshot_map;
 
 // **********
-
+/* @param pc program counter
+ * @param type instruction type
+ * @param offset offset into pm device
+ * @param write_size size of the data being writen
+ * @param write_data actual data being written of write_size length to offset on pmdevice 
+*/
 static void log_output(target_ulong pc, event_type type, target_ulong offset, target_ulong write_size, void* write_data) {
   output->write(reinterpret_cast<char*>(&pc), sizeof(pc));
   output->write(reinterpret_cast<char*>(&type), sizeof(type));
   switch (type) {
   case WRITE: {
+    
 
+    char data[write_size];
+    memcpy(data, write_data, write_size);
+    std::cout << "inside of log_output's WRITE case\n" << endl;
+    std::cout << "offset: " << offset << " write_size: " << write_size << endl;
+    std::cout << "data: " << data << endl;
     // ******* New code:
-
-    int size = *reinterpret_cast<char *>(write_size);
+    
     write_data_st * wdst = (struct write_data_st *) malloc(sizeof(struct write_data_st));
-    wdst->data = (char *) malloc(size);
-    memcpy(wdst->data, reinterpret_cast<char*>(write_data), size);
-    snapshot_map.insert(std::pair<char *, struct write_data_st *>(reinterpret_cast<char*>(&offset), wdst));
+    wdst->data = (char *) malloc(write_size);
+    wdst->data_length = (size_t) write_size;
+    memcpy(wdst->data, reinterpret_cast<char*>(write_data), write_size);
+
+    std::cout << "before map insert\n" << endl; //Q: do we need offset or &offset? //write below takes a buffer.. we just want offset?
+    snapshot_map.insert(std::pair<char *, struct write_data_st *>(reinterpret_cast<char*>(offset), wdst));
+
+    std::cout << "finished WRITE case\n" << endl;
 
     // **********
 
@@ -67,12 +84,14 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
 
 static void print_snapshot_map() {
 
-    std::cout << "\n\n***** Printing Snapshot Map *****\n";
+    std::cout << "\n\n***** Printing Snapshot Map *****\n"<< endl;
     std::map<char *, struct write_data_st *>::iterator it;
     for ( it = snapshot_map.begin(); it != snapshot_map.end(); ++it) {
-  std::cout << it->first << " => " << it->second << "\n";
+	char write_data [it->second->data_length];
+	memcpy(write_data, it->second->data, it->second->data_length);
+        std::cout << (target_ulong) it->first << " => size: " << it->second->data_length << " data: " << write_data  << endl;	
     }   
-    std::cout << "\nEnd of snapshot map\n";
+    std::cout << "\nEnd of snapshot map\n" << endl;
 }
 
 
@@ -245,6 +264,7 @@ extern "C" bool init_plugin(void *self) {
 extern "C" void uninit_plugin(void *self) {
     
     // Printing snapshot map
+    std::cout << "\n\n inside of uninit_plugin, about to print out map. \n" << endl;
     print_snapshot_map();
 
     // Existing code

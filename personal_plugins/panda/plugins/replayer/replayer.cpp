@@ -42,6 +42,9 @@ extern "C" bool init_plugin(void *self) {
       }*/
       panda_physical_memory_rw(base + offset, write_data.data(), write_size, true);
       std::cout << "[pc 0x" << std::hex << pc << "] write to offset " << offset << " addr " << base + offset << ", size " << write_size << std::endl;
+      char data[write_size]; 
+      memcpy(data, write_data.data(), write_size); 
+      std::cout << "data: "  << data << std::endl;
       break;
     }
     case FLUSH: {
