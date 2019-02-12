@@ -44,24 +44,27 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
   output->write(reinterpret_cast<char*>(&type), sizeof(type));
   switch (type) {
   case WRITE: {
-    
-
-    char data[write_size];
-    memcpy(data, write_data, write_size);
-    std::cout << "inside of log_output's WRITE case\n" << endl;
-    std::cout << "offset: " << offset << " write_size: " << write_size << endl;
-    std::cout << "data: " << data << endl;
     // ******* New code:
-    
-    write_data_st * wdst = (struct write_data_st *) malloc(sizeof(struct write_data_st));
-    wdst->data = (char *) malloc(write_size);
-    wdst->data_length = (size_t) write_size;
-    memcpy(wdst->data, reinterpret_cast<char*>(write_data), write_size);
+    std::map<char *, struct write_data_st *>::iterator map_iterator;
+    map_iterator = mymap.find(reinterpret_cast<char*>(offset));
+    if (it != mymap.end()){
+      //key not yet in map, add it
+      //put data into write_data_st 
+      write_data_st * wdst = (struct write_data_st *) malloc(sizeof(struct write_data_st));
+      wdst->data = (char *) malloc(write_size);
+      wdst->data_length = (size_t) write_size;
+      wdst->is_flushed = false;
+      memcpy(wdst->data, reinterpret_cast<char*>(write_data), write_size);
+      snapshot_map.insert(std::pair<char *, struct write_data_st *>(reinterpret_cast<char*>(offset), wdst));
 
-    std::cout << "before map insert\n" << endl; //Q: do we need offset or &offset? //write below takes a buffer.. we just want offset?
-    snapshot_map.insert(std::pair<char *, struct write_data_st *>(reinterpret_cast<char*>(offset), wdst));
-
-    std::cout << "finished WRITE case\n" << endl;
+    } else {
+      //key in map, just modify it
+      write_data_st * wdst = map_iterator->second;
+      free(map_iterator->second->data);
+      wdst->data = (char *) malloc(write_size);
+      wdst->data_length = (size_t) write_size;
+      memcpy(wdst->data, reinterpret_cast<char*>(write_data), write_size);
+    }
 
     // **********
 
@@ -72,6 +75,23 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
     break;
   }
   case FLUSH: {
+    //check to see if already in map or not
+    std::map<char *, struct write_data_st *>::iterator map_iterator;
+    map_iterator = mymap.find(reinterpret_cast<char*>(offset));
+    if (it != mymap.end()){
+      //key not yet in map, add it
+      //put data into write_data_st 
+      write_data_st * wdst = (struct write_data_st *) malloc(sizeof(struct write_data_st));
+      wdst->data = NULL;
+      wdst->data_length = 0;
+      wdst->is_flushed = true;
+      snapshot_map.insert(std::pair<char *, struct write_data_st *>(reinterpret_cast<char*>(offset), wdst));
+
+    } else {
+      //key in map, just modify it
+      write_data_st * wdst = map_iterator->second;
+      wdst->is_flushed = true;
+    }
     output->write(reinterpret_cast<char*>(&offset), sizeof(offset));
     break;
   }
