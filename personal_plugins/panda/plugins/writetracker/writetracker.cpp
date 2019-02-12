@@ -32,6 +32,17 @@ struct write_data_st {
 // key is offset into pmdec, val is write_data_st which has pointer to data which was written
 std::map<char *, write_data_st*> snapshot_map;
 
+static void print_snapshot_map() {
+
+    std::cout << "\n\n***** printing Snapshot Map *****\n"<< endl;
+    std::map<char *, struct write_data_st *>::iterator it;
+    for ( it = snapshot_map.begin(); it != snapshot_map.end(); ++it) {
+	char write_data [it->second->data_length];
+	memcpy(write_data, it->second->data, it->second->data_length);
+        std::cout << (target_ulong) it->first << " => size: " << it->second->data_length << " data: " << write_data  << endl;	
+    }   
+    std::cout << "\nEnd of snapshot map\n" << endl;
+}
 // **********
 /* @param pc program counter
  * @param type instruction type
@@ -43,11 +54,13 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
   output->write(reinterpret_cast<char*>(&pc), sizeof(pc));
   output->write(reinterpret_cast<char*>(&type), sizeof(type));
   switch (type) {
+  	//std::cout << "inside log_output" << endl;
   case WRITE: {
+	//cout << "inside WRITE case" << endl;
     // ******* New code:
     std::map<char *, struct write_data_st *>::iterator map_iterator;
-    map_iterator = mymap.find(reinterpret_cast<char*>(offset));
-    if (it != mymap.end()){
+    map_iterator = snapshot_map.find(reinterpret_cast<char*>(offset));
+    if (map_iterator == snapshot_map.end()){
       //key not yet in map, add it
       //put data into write_data_st 
       write_data_st * wdst = (struct write_data_st *) malloc(sizeof(struct write_data_st));
@@ -58,9 +71,14 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
       snapshot_map.insert(std::pair<char *, struct write_data_st *>(reinterpret_cast<char*>(offset), wdst));
 
     } else {
+      //cout << "remapping data, printing map first: " << endl;
+      //print_snapshot_map();
+      //cout << "offset at: " << (target_ulong) map_iterator->first << endl;
       //key in map, just modify it
+      
       write_data_st * wdst = map_iterator->second;
-      free(map_iterator->second->data);
+      
+      std::free((char*)wdst->data);
       wdst->data = (char *) malloc(write_size);
       wdst->data_length = (size_t) write_size;
       memcpy(wdst->data, reinterpret_cast<char*>(write_data), write_size);
@@ -77,8 +95,8 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
   case FLUSH: {
     //check to see if already in map or not
     std::map<char *, struct write_data_st *>::iterator map_iterator;
-    map_iterator = mymap.find(reinterpret_cast<char*>(offset));
-    if (it != mymap.end()){
+    map_iterator = snapshot_map.find(reinterpret_cast<char*>(offset));
+    if (map_iterator == snapshot_map.end()){
       //key not yet in map, add it
       //put data into write_data_st 
       write_data_st * wdst = (struct write_data_st *) malloc(sizeof(struct write_data_st));
@@ -100,18 +118,6 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
     ofs << "\nFence ins";
     break;
   }
-}
-
-static void print_snapshot_map() {
-
-    std::cout << "\n\n***** Printing Snapshot Map *****\n"<< endl;
-    std::map<char *, struct write_data_st *>::iterator it;
-    for ( it = snapshot_map.begin(); it != snapshot_map.end(); ++it) {
-	char write_data [it->second->data_length];
-	memcpy(write_data, it->second->data, it->second->data_length);
-        std::cout << (target_ulong) it->first << " => size: " << it->second->data_length << " data: " << write_data  << endl;	
-    }   
-    std::cout << "\nEnd of snapshot map\n" << endl;
 }
 
 
