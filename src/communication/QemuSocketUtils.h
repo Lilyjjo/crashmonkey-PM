@@ -17,7 +17,8 @@ typedef enum {
 
 typedef enum {
 	pWritetracker,
-	pReplay
+	pReplay,
+	pReplayMap
 }Plugins;
 
 typedef struct {

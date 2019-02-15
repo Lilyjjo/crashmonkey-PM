@@ -426,7 +426,7 @@ int main(int argc, char** argv) {
 	*	EOF
 	************************************************************/
         msg = SockMessage();
-        vm->BuildLoadPluginMsg(msg, pReplay, begin_replay_addr, end_trace_addr);
+        vm->BuildLoadPluginMsg(msg, pReplayMap, begin_replay_addr, end_trace_addr);
 
         if (vm->SendCommand(msg) != eNone ) {
                 int err_no = errno;

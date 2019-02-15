@@ -120,6 +120,13 @@ SockError ClientSocket::SendCommand(const SockMessage& msg) {
 						complete_command += options.start;
 					}
 					break;
+				case pReplayMap:
+					complete_command += "replayer_map";
+					if (! options.start.empty()) {
+						complete_command += " base=";
+						complete_command += options.start;
+					}
+					break;
 				default:
 					cout << "Undefined Plugin" << endl;
 					return eOther;
