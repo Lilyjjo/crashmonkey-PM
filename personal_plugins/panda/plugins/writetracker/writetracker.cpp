@@ -6,13 +6,35 @@
 #include <vector>
 #include "panda/plugin.h"
 
+//i'm not sure which of these headers is needed:
+#include <boost/interprocess/detail/config_begin.hpp>
+#include <boost/interprocess/detail/workaround.hpp>
+#include <boost/interprocess/containers/map.hpp>
+#include <boost/interprocess/managed_heap_memory.hpp>
+#include <boost/interprocess/allocators/allocator.hpp>
+
 static target_ulong range_start;
 static target_ulong range_end;
 
 static std::ofstream ofs;
 
 static std::unique_ptr<std::ofstream> output;
-using namespace std;
+
+struct write_data_st {
+    char data[8];
+    size_t data_length;
+    bool is_flushed;
+};
+
+using namespace boost::interprocess;
+
+
+typedef allocator<std::pair<char *, write_data_st>>, managed_shared_memory::segment_manager>
+      ShmemAllocator;
+
+typedef map<char *, write_data_st, ShmemAllocator> MyMap;
+
+MyMap* snapshot_map;
 
 enum event_type : int {
   WRITE,
@@ -21,16 +43,9 @@ enum event_type : int {
 };
 
 
-// ******* New code:
-
-struct write_data_st {
-    char * data;
-    size_t data_length;
-    bool is_flushed;
-};
-
 // key is offset into pm device, val is write_data_st which has pointer to data which was written
-std::map<char *, write_data_st*> snapshot_map;
+//std::map<char *, write_data_st*> snapshot_map;
+
 
 // **********
 /* @param pc program counter
@@ -46,24 +61,20 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
   case WRITE: {
     // ******* New code:
     std::map<char *, struct write_data_st *>::iterator map_iterator;
-    map_iterator = snapshot_map.find(reinterpret_cast<char*>(offset));
-    if (map_iterator == snapshot_map.end()){
+    map_iterator = (*snapshot_map).find(reinterpret_cast<char*>(offset));
+    if (map_iterator == (*snapshot_map).end()){
       //key not yet in map, add it
       //put data into write_data_st 
-      write_data_st * wdst = (struct write_data_st *) malloc(sizeof(struct write_data_st));
-      wdst->data = (char *) malloc(write_size);
-      wdst->data_length = (size_t) write_size;
-      wdst->is_flushed = false;
-      memcpy(wdst->data, reinterpret_cast<char*>(write_data), write_size);
-      snapshot_map.insert(std::pair<char *, struct write_data_st *>(reinterpret_cast<char*>(offset), wdst));
+      write_data_st wdst;
+      wdst.data_length = (size_t) write_size;
+      wdst.is_flushed = false;
+      memcpy(&(wdst.data), reinterpret_cast<char*>(write_data), write_size);
+      (*snapshot_map).insert(std::pair<char *, struct write_data_st>(reinterpret_cast<char*>(offset), wdst));
 
       } else {      //key in map, just modify it
-        write_data_st * wdst = map_iterator->second;
-        
-        std::free((char*)wdst->data);
-        wdst->data = (char *) malloc(write_size);
+        write_data_st *wdst = &(map_iterator->second);
         wdst->data_length = (size_t) write_size;
-        memcpy(wdst->data, reinterpret_cast<char*>(write_data), write_size);
+        memcpy(&(wdst->data), reinterpret_cast<char*>(write_data), write_size);
       }
 
     // **********
@@ -76,20 +87,20 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
   }
   case FLUSH: {
     //check to see if already in map or not
-    std::map<char *, struct write_data_st *>::iterator map_iterator;
-    map_iterator = snapshot_map.find(reinterpret_cast<char*>(offset));
-    if (map_iterator == snapshot_map.end()){
+    std::map<char *, struct write_data_st>::iterator map_iterator;
+    map_iterator = (*snapshot_map).find(reinterpret_cast<char*>(offset));
+    if (map_iterator == (*snapshot_map).end()){
       //key not yet in map, add it
       //put data into write_data_st 
-      write_data_st * wdst = (struct write_data_st *) malloc(sizeof(struct write_data_st));
-      wdst->data = NULL;
-      wdst->data_length = 0;
-      wdst->is_flushed = true;
-      snapshot_map.insert(std::pair<char *, struct write_data_st *>(reinterpret_cast<char*>(offset), wdst));
+      write_data_st wdst;
+      wdst.data = '00000000';
+      wdst.data_length = 0;
+      wdst.is_flushed = true;
+      (*snapshot_map).insert(std::pair<char *, struct write_data_st>(reinterpret_cast<char*>(offset), wdst));
 
     } else {
       //key in map, just modify it
-      write_data_st * wdst = map_iterator->second;
+      write_data_st * wdst = &(map_iterator->second);
       wdst->is_flushed = true;
     }
     output->write(reinterpret_cast<char*>(&offset), sizeof(offset));
@@ -106,7 +117,7 @@ static void print_snapshot_map() {
 
     std::cout << "\n\n***** printing Snapshot Map *****\n"<< endl;
     std::map<char *, struct write_data_st *>::iterator it;
-    for ( it = snapshot_map.begin(); it != snapshot_map.end(); ++it) {
+    for ( it = (*snapshot_map).begin(); it != (*snapshot_map).end(); ++it) {
       char write_data [it->second->data_length];
       memcpy(write_data, it->second->data, it->second->data_length);
       std::cout << (target_ulong) it->first << " => size: " << it->second->data_length << " data: " << write_data  << endl; 
@@ -280,6 +291,39 @@ extern "C" bool init_plugin(void *self) {
     output = std::unique_ptr<std::ofstream>(new std::ofstream("wt.out", std::ios::binary));
 
     ofs.open ("out.log", std::ofstream::out);
+
+    //shared memory code: 
+
+    using namespace boost::interprocess;
+   //Remove shared memory on construction and destruction
+   struct shm_remove
+   {
+      shm_remove() { shared_memory_object::remove("MySharedMemory"); }
+      ~shm_remove(){ shared_memory_object::remove("MySharedMemory"); }
+   } remover;
+
+   //A managed shared memory where we can construct objects
+   //associated with a c-string
+   managed_shared_memory segment(create_only,
+                                 "MySharedMemory",  //segment name
+                                 65536);
+
+   const ShmemAllocator alloc_inst (segment.get_segment_manager());
+
+   //Construct the vector in the shared memory segment with the STL-like allocator 
+   //from a range of iterators
+   snapshot_map =
+      segment.construct<MyMap>
+         ("MyMap")/*object name*/
+         (alloc_inst /*third ctor parameter*/);
+
+   //Use vector as your want
+   //std::sort(myvector->rbegin(), myvector->rend());
+   // . . .
+   //When done, destroy and delete vector from the segment
+   //segment.destroy<MyVector>("MyVector");
+
+
     return true;
 }
 
