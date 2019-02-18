@@ -2,16 +2,14 @@
 #include <fstream>
 #include <cstdlib>
 #include <memory>
-#include <map>
+//#include <map>
 #include <vector>
 #include "panda/plugin.h"
 
 //i'm not sure which of these headers is needed:
-#include <boost/interprocess/detail/config_begin.hpp>
-#include <boost/interprocess/detail/workaround.hpp>
 #include <boost/interprocess/containers/map.hpp>
-#include <boost/interprocess/managed_heap_memory.hpp>
 #include <boost/interprocess/allocators/allocator.hpp>
+#include <boost/interprocess/managed_shared_memory.hpp>
 
 static target_ulong range_start;
 static target_ulong range_end;
@@ -28,11 +26,19 @@ struct write_data_st {
 
 using namespace boost::interprocess;
 
+//struct shm_remove{
+//      shm_remove() {} shared_memory_object::remove("MySharedMemoryxxx"); }
+//      ~shm_remove(){} shared_memory_object::remove("MySharedMemoryxxx"); }
+//   } remover;
 
-typedef allocator<std::pair<char *, write_data_st>>, managed_shared_memory::segment_manager>
+
+typedef allocator<std::pair<char * const, struct write_data_st>, managed_shared_memory::segment_manager>
       ShmemAllocator;
 
-typedef map<char *, write_data_st, ShmemAllocator> MyMap;
+typedef map< char *, struct write_data_st, std::less<char *>, ShmemAllocator> MyMap;
+
+
+managed_shared_memory segment;
 
 MyMap* snapshot_map;
 
@@ -59,22 +65,30 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
   output->write(reinterpret_cast<char*>(&type), sizeof(type));
   switch (type) {
   case WRITE: {
+    std::cout << "in write case" << std::endl;
     // ******* New code:
-    std::map<char *, struct write_data_st *>::iterator map_iterator;
-    map_iterator = (*snapshot_map).find(reinterpret_cast<char*>(offset));
-    if (map_iterator == (*snapshot_map).end()){
+    //std::map<char *, struct write_data_st>::iterator map_iterator;
+   snapshot_map->find((char*)4000);
+    std::cout << "1" << std::endl;
+    auto map_iterator = snapshot_map->find(reinterpret_cast<char*>(offset));
+    std::cout << "1.5" << std::endl;
+    if (map_iterator == snapshot_map->end()){
+      std::cout << "2" << std::endl;
       //key not yet in map, add it
       //put data into write_data_st 
       write_data_st wdst;
       wdst.data_length = (size_t) write_size;
       wdst.is_flushed = false;
       memcpy(&(wdst.data), reinterpret_cast<char*>(write_data), write_size);
-      (*snapshot_map).insert(std::pair<char *, struct write_data_st>(reinterpret_cast<char*>(offset), wdst));
+      snapshot_map->insert(std::pair< char *, struct write_data_st>(reinterpret_cast< char*>(offset), wdst));
 
+       std::cout << "3" << std::endl;
       } else {      //key in map, just modify it
+        std::cout << "4" << std::endl;
         write_data_st *wdst = &(map_iterator->second);
         wdst->data_length = (size_t) write_size;
         memcpy(&(wdst->data), reinterpret_cast<char*>(write_data), write_size);
+        std::cout << "5" << std::endl;
       }
 
     // **********
@@ -86,22 +100,27 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
     break;
   }
   case FLUSH: {
+    std::cout << "6" << std::endl;
     //check to see if already in map or not
-    std::map<char *, struct write_data_st>::iterator map_iterator;
-    map_iterator = (*snapshot_map).find(reinterpret_cast<char*>(offset));
-    if (map_iterator == (*snapshot_map).end()){
+    //std::map<char *, struct write_data_st>::iterator map_iterator;
+    auto map_iterator = snapshot_map->find(reinterpret_cast< char*>(offset));
+    if (map_iterator == snapshot_map->end()){
+    std::cout << "7" << std::endl;
       //key not yet in map, add it
       //put data into write_data_st 
       write_data_st wdst;
-      wdst.data = '00000000';
       wdst.data_length = 0;
       wdst.is_flushed = true;
-      (*snapshot_map).insert(std::pair<char *, struct write_data_st>(reinterpret_cast<char*>(offset), wdst));
+      snapshot_map->insert(std::pair< char *, struct write_data_st>(reinterpret_cast< char*>(offset), wdst));
 
+    std::cout << "8" << std::endl;
     } else {
       //key in map, just modify it
+    std::cout << "9" << std::endl;
       write_data_st * wdst = &(map_iterator->second);
       wdst->is_flushed = true;
+	
+    std::cout << "10" << std::endl;
     }
     output->write(reinterpret_cast<char*>(&offset), sizeof(offset));
     break;
@@ -115,14 +134,14 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
 
 static void print_snapshot_map() {
 
-    std::cout << "\n\n***** printing Snapshot Map *****\n"<< endl;
-    std::map<char *, struct write_data_st *>::iterator it;
-    for ( it = (*snapshot_map).begin(); it != (*snapshot_map).end(); ++it) {
-      char write_data [it->second->data_length];
-      memcpy(write_data, it->second->data, it->second->data_length);
-      std::cout << (target_ulong) it->first << " => size: " << it->second->data_length << " data: " << write_data  << endl; 
+    std::cout << "\n\n***** printing Snapshot Map *****\n"<< std::endl;
+    //std::map<char *, struct write_data_st *>::iterator it;
+    for (auto it = (*snapshot_map).begin(); it != (*snapshot_map).end(); ++it) {
+      char write_data [it->second.data_length];
+      memcpy(write_data, it->second.data, it->second.data_length);
+      std::cout << (target_ulong) it->first << " => size: " << it->second.data_length << " data: " << write_data  << std::endl; 
     }   
-    std::cout << "\nEnd of snapshot map\n" << endl;
+    std::cout << "\nEnd of snapshot map\n" << std::endl;
 }
 
 
@@ -296,26 +315,31 @@ extern "C" bool init_plugin(void *self) {
 
     using namespace boost::interprocess;
    //Remove shared memory on construction and destruction
-   struct shm_remove
-   {
-      shm_remove() { shared_memory_object::remove("MySharedMemory"); }
-      ~shm_remove(){ shared_memory_object::remove("MySharedMemory"); }
-   } remover;
+   //struct shm_remove
+   //{
+   //   shm_remove() {} shared_memory_object::remove("MySharedMemoryxxx"); }
+   //   ~shm_remove(){} shared_memory_object::remove("MySharedMemoryxxx"); }
+   //} remover;
 
    //A managed shared memory where we can construct objects
-   //associated with a c-string
-   managed_shared_memory segment(create_only,
-                                 "MySharedMemory",  //segment name
-                                 65536);
+   //associated with a c-strig
+    std::cout << "0.1" << std::endl;
+    segment = managed_shared_memory(create_only,
+                                 "MySharedMemoryxxxx",  //segment name
+                                 100000*sizeof(std::pair<char*,struct write_data_st>));
+    std::cout << "0.2" << std::endl;
 
    const ShmemAllocator alloc_inst (segment.get_segment_manager());
+    std::cout << "0.3" << std::endl;
 
    //Construct the vector in the shared memory segment with the STL-like allocator 
    //from a range of iterators
    snapshot_map =
       segment.construct<MyMap>
          ("MyMap")/*object name*/
-         (alloc_inst /*third ctor parameter*/);
+	 (std::less<char *>(),
+         alloc_inst /*third ctor parameter*/);
+    std::cout << "0.4" << std::endl;
 
    //Use vector as your want
    //std::sort(myvector->rbegin(), myvector->rend());
@@ -323,15 +347,24 @@ extern "C" bool init_plugin(void *self) {
    //When done, destroy and delete vector from the segment
    //segment.destroy<MyVector>("MyVector");
 
+   std::cout << "end of init write tracker plugin \n" << std::endl;
+//   write_data_st wdst;
+//   snapshot_map->insert(std::pair< char *, struct write_data_st>(reinterpret_cast< char*>(4000), wdst));
+//   snapshot_map->find((char*)4000);
+//   std::cout << "inserted into map okay \n" << std::endl;
 
     return true;
 }
 
 extern "C" void uninit_plugin(void *self) {
-    
+
     // Printing snapshot map
-    std::cout << "\n\n inside of uninit_plugin, about to print out map. \n" << endl;
+    std::cout << "\n\n inside of uninit_plugin, about to print out map. \n" << std::endl;
     print_snapshot_map();
+    std::cout << "going to call remove shared memeory" << std::endl;
+
+      shared_memory_object::remove("MySharedMemoryxxxx");
+    
 
     // Existing code
     output.reset();
