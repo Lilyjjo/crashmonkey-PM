@@ -34,12 +34,12 @@ managed_shared_memory segment;
 
 static void print_snapshot_map() {
 
-    std::cout << "\n\n***** printing Snapshot Map *****\n"<< std::endl;
-    //std::map<char *, struct write_data_st *>::iterator it;
-    for (auto it = snapshot_map->begin(); it != snapshot_map->end(); ++it) {
-      std::cout << (target_ulong) it->first << " => size: " << it->second.data_length << " data: " << it->second.data << std::endl;
-    }
-    std::cout << "\nEnd of snapshot map\n" << std::endl;
+	std::cout << "\n\n***** printing Snapshot Map *****\n"<< std::endl;
+	//std::map<char *, struct write_data_st *>::iterator it;
+	for (auto it = snapshot_map->begin(); it != snapshot_map->end(); ++it) {
+		std::cout << (target_ulong) it->first << " => size: " << it->second.data_length << " data: " << it->second.data << std::endl;
+	}
+	std::cout << "\nEnd of snapshot map\n" << std::endl;
 }
 
 /*
@@ -73,28 +73,16 @@ extern "C" bool init_plugin(void *self) {
     std::cout << "about to open managed_shared_memory\n" << std::hex << base << std::endl;
 
     segment = managed_shared_memory(open_only, "MySharedMemory1");
+    std::pair<MyMap*, managed_shared_memory::size_type> res;
 
-    snapshot_map = segment.find<MyMap> ("MySharedMemory1");
-
-    std::pair<MyType*, managed_shared_memory::size_type> res;
-
+    res = segment.find<MyMap> ("MyMap");
+    snapshot_map = res.first;
 
     std::cout << "shared memory opened \n" << std::hex << base << std::endl;
 
     print_snapshot_map();
 
     std::cout << "about to put stuff into panda\n" << std::endl;
-
-
-    //uint64_t pc;
-    //int type;
-   // uint64_t offset;
-    //uint64_t write_size;
-    std::vector<uint8_t> write_data;
-
-
-
-    //auto map_iterator = snapshot_map->find(reinterpret_cast< char*>(offset));
 
     for (auto map_iterator = snapshot_map->begin(); map_iterator != snapshot_map->end(); ++map_iterator) {
         if(map_iterator->second.data_length != 0){
@@ -103,6 +91,8 @@ extern "C" bool init_plugin(void *self) {
       }  
 
    std::cout << "replayer done, change made outside of vm" << std::endl;
+   shared_memory_object::remove("MySharedMemory1");
+   std::cout << "removed shared memory" << std::endl;
    return true;
 }
 
