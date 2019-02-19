@@ -16,6 +16,7 @@ static const int WRITE = 0;
 static const int FLUSH = 1;
 static const int FENCE = 2;
 
+
 //TODO figure out how to put write_data_st into a header somewhere, rn it's also declared in writetracker.cpp
 struct write_data_st {
     char data[8];
@@ -32,46 +33,24 @@ MyMap* snapshot_map;
 
 managed_shared_memory segment;
 
+
+// method to print out map, can only be called after shared memory access is set up
 static void print_snapshot_map() {
 
 	std::cout << "\n\n***** printing Snapshot Map *****\n"<< std::endl;
-	//std::map<char *, struct write_data_st *>::iterator it;
 	for (auto it = snapshot_map->begin(); it != snapshot_map->end(); ++it) {
 		std::cout << (target_ulong) it->first << " => size: " << it->second.data_length << " data: " << it->second.data << std::endl;
 	}
 	std::cout << "\nEnd of snapshot map\n" << std::endl;
 }
 
-/*
-static void fill_fake_snapshot_map(char * base) {
-
-    std::cout << "***** filling fake snapshot_map *****\n"<< std::endl;
-    std::map<char *, struct write_data_st *>::iterator it;
-    size_t write_size = 8;
-    char data[] = "********";
-    char * offset = base;
-
-    for (int i = 0; i < 100; i++) {
-      write_data_st * wdst = (struct write_data_st *) malloc(sizeof(struct write_data_st));
-      wdst->data = (char *) malloc(write_size);
-      wdst->data_length = (size_t) write_size;
-      wdst->is_flushed = false;
-      memcpy(wdst->data, data, write_size);
-      snapshot_map.insert(std::pair<char *, struct write_data_st *>(reinterpret_cast<char*>(offset + (i * write_size)), wdst));
-    }   
-    std::cout << "***** done filling fake map *****\n" << std::endl;
-} */
-
 
 extern "C" bool init_plugin(void *self) {
     panda_arg_list *args = panda_get_args("replayer_map");
     auto base = panda_parse_ulong_opt(args, "base", 0x40000000, "Base physical address to replay at");
-    //auto file = panda_parse_string(args, "file", "wt.out");
-    //fill_fake_snapshot_map((char *) base);
     std::cout << "replayer_map starting at \n" << std::hex << base << std::endl;
 
     std::cout << "about to open managed_shared_memory\n" << std::hex << base << std::endl;
-
     segment = managed_shared_memory(open_only, "MySharedMemory1");
     std::pair<MyMap*, managed_shared_memory::size_type> res;
 
@@ -80,7 +59,7 @@ extern "C" bool init_plugin(void *self) {
 
     std::cout << "shared memory opened \n" << std::hex << base << std::endl;
 
-    print_snapshot_map();
+    // print_snapshot_map();
 
     std::cout << "about to put stuff into panda\n" << std::endl;
 
@@ -95,8 +74,6 @@ extern "C" bool init_plugin(void *self) {
    std::cout << "removed shared memory" << std::endl;
    return true;
 }
-
-
 
 
 extern "C" void uninit_plugin(void *self) {}
