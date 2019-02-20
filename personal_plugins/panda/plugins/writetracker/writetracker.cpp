@@ -107,6 +107,7 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
 
 
 // method to print out map, can only be called after shared memory access is set up
+__attribute__((unused))
 static void print_snapshot_map() {
 
     std::cout << "\n\n***** printing Snapshot Map *****\n"<< std::endl;

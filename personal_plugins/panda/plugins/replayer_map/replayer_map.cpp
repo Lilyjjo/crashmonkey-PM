@@ -35,6 +35,7 @@ managed_shared_memory segment;
 
 
 // method to print out map, can only be called after shared memory access is set up
+__attribute__((unused))
 static void print_snapshot_map() {
 
 	std::cout << "\n\n***** printing Snapshot Map *****\n"<< std::endl;
