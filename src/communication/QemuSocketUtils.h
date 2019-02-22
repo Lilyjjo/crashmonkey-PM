@@ -25,6 +25,7 @@ typedef struct {
 	Plugins plugin_name;
 	std::string start;
 	std::string end;
+	std::string map_name;
 	unsigned int id;
 }CommandOpts;
 

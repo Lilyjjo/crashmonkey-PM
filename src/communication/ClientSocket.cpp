@@ -112,6 +112,12 @@ SockError ClientSocket::SendCommand(const SockMessage& msg) {
 						complete_command += "end=";
 						complete_command += options.end;
 					}
+					if (! options.map_name.empty()) {
+						if (isCustomStart)
+							complete_command += ",";
+						complete_command += "map_name=";
+						complete_command += options.map_name;
+					}
 					break;
 				case pReplay:
 					complete_command += "replayer";
