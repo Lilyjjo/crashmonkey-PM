@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
 	SockMessage msg;
 	msg = SockMessage();
 	string mount_map_name("mount_map");
-	vm->BuildLoadPluginMsg(msg, pWritetracker, begin_trace_addr, end_trace_addr, map_name);
+	vm->BuildLoadPluginMsgMap(msg, pWritetracker, begin_trace_addr, end_trace_addr, map_name);
 	
 	if (vm->SendCommand(msg) != eNone ) {
 		int err_no = errno;
@@ -337,7 +337,7 @@ int main(int argc, char** argv) {
 	************************************************************/
  	msg = SockMessage();
 	string workload_map_name("workload_map");
-	vm->BuildLoadPluginMsg(msg, pWritetracker, begin_trace_addr, end_trace_addr, workload_map_name);
+	vm->BuildLoadPluginMsgMap(msg, pWritetracker, begin_trace_addr, end_trace_addr, workload_map_name);
 	
 	if (vm->SendCommand(msg) != eNone ) {
 		int err_no = errno;

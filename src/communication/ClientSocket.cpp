@@ -66,7 +66,7 @@ void ClientSocket::BuildLoadPluginMsg(SockMessage& msg, Plugins plugin_name, str
 	msg.q_cmd_options->end = end;
 }
 
-void ClientSocket::BuildLoadPluginMsg(SockMessage& msg, Plugins plugin_name, string start, string end, string map_name) {
+void ClientSocket::BuildLoadPluginMsgMap(SockMessage& msg, Plugins plugin_name, string start, string end, string map_name) {
 	msg.q_cmd = cLoadPlugin;
 	msg.need_response = false;
 	msg.q_cmd_options->plugin_name =plugin_name;
