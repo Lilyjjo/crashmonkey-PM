@@ -2,7 +2,6 @@
 #include <fstream>
 #include <cstdlib>
 #include <memory>
-//#include <map>
 #include <vector>
 #include "panda/plugin.h"
 
@@ -13,6 +12,7 @@
 
 static target_ulong range_start;
 static target_ulong range_end;
+static char *map_name;
 
 static std::ofstream ofs;
 
@@ -254,8 +254,11 @@ extern "C" bool init_plugin(void *self) {
     panda_arg_list *args = panda_get_args("writetracker");
     range_start = panda_parse_ulong_opt(args, "start", 0x40000000, "Start address tracking range, default 1G");
     range_end = panda_parse_ulong_opt(args, "end", 0x48000000, "End address (exclusive) of tracking range, default 1G+128MB"); 
+    map_name = panda_parse_string_opt(args, "map_name", NULL, "Name of map, used to identify whether we are tracking the mount or the snapshot");   
+
     std::cout << "writetracker loading" << std::endl;
     std::cout << "tracking range [" << std::hex << range_start << ", " << std::hex << range_end << ")" << std::endl;
+    std::cout << "tracking for: " << map_name << std::endl; 
 
     panda_do_flush_tb();
     // Need this to get EIP with our callbacks
@@ -289,7 +292,7 @@ extern "C" bool init_plugin(void *self) {
     using namespace boost::interprocess;
     
     //A managed shared memory where we can construct objects
-    segment = managed_shared_memory(create_only,
+    segment = managed_shared_memory(open_or_create,
                                  "MySharedMemory1",  //segment name
                                  100000*sizeof(std::pair<char*,struct write_data_st>));
 
@@ -299,11 +302,11 @@ extern "C" bool init_plugin(void *self) {
    // create map inside of shared memory segment
    snapshot_map =
       segment.construct<MyMap>
-         ("MyMap")      /*object name*/
+         (map_name)      /*object name*/
 	       (std::less<char *>(),
          alloc_inst);
 
-   std::cout << "end of init write tracker plugin \n" << std::endl;
+   std::cout << "end of init " << map_name << " tracker plugin \n" << std::endl;
    return true;
 }
 

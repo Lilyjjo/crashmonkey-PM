@@ -51,11 +51,14 @@ extern "C" bool init_plugin(void *self) {
     auto base = panda_parse_ulong_opt(args, "base", 0x40000000, "Base physical address to replay at");
     std::cout << "replayer_map starting at \n" << std::hex << base << std::endl;
 
+    char *map_name = panda_parse_string_opt(args, "map_name", NULL, "Name of the map object in shared memory, either mount_map or workload_map");
+    std::cout << "replaying operations in " << map_name << std::endl;
+
     std::cout << "about to open managed_shared_memory\n" << std::hex << base << std::endl;
     segment = managed_shared_memory(open_only, "MySharedMemory1");
     std::pair<MyMap*, managed_shared_memory::size_type> res;
 
-    res = segment.find<MyMap> ("MyMap");
+    res = segment.find<MyMap> (map_name);
     snapshot_map = res.first;
 
     std::cout << "shared memory opened \n" << std::hex << base << std::endl;

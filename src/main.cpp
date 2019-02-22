@@ -315,7 +315,7 @@ int main(int argc, char** argv) {
 	//dummy workload for now
 	//system("./workload seq 4K 4K overwrite 1");
 	//system("./workload seq 1 4K");
-//	system("./workload");
+	//system("./workload");
 
 
 	cout << "Running j-lang test profile" << endl;
