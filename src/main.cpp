@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
 	}
 
 	// Print the settings in which CrashMonkey-PM would run
-	cout << "\n******** Running CrashMonkey-PM **********\n" << endl;
+	cout << "\n******** Running CrashMonkey-PM FROM MODIFED FILE **********\n" << endl;
 	cout << setw(30) << left << "Remote IP address" << setw(2) << left << ":"
 	     << setw(2) << left << remote_ip << endl; 
 
@@ -502,7 +502,7 @@ int main(int argc, char** argv) {
 	log_file.close();
 
 	// This will unmount the record device
-	pm_tester.cleanup_harness();
+	//pm_tester.cleanup_harness();
 	
 	// generalize the umount function in Tester
 	system("umount /mnt/pmem1");
