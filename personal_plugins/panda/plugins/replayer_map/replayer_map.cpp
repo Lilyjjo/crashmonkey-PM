@@ -29,7 +29,8 @@ typedef allocator<std::pair<char * const, struct write_data_st>, managed_shared_
 
 typedef map< char *, struct write_data_st, std::less<char *>, ShmemAllocator> MyMap;
 
-MyMap* snapshot_map;
+MyMap* mount_map;
+MyMap* workload_map;
 
 managed_shared_memory segment;
 
@@ -45,38 +46,42 @@ static void print_snapshot_map() {
 	std::cout << "\nEnd of snapshot map\n" << std::endl;
 }
 
+void replay_map(MyMap *map) {
+
+    for (auto map_iterator = map->begin(); map_iterator != map->end(); ++map_iterator) {
+        if(map_iterator->second.data_length != 0){
+          panda_physical_memory_rw((uint64_t) base + (uint64_t) map_iterator->first, (uint8_t *) map_iterator->second.data, map_iterator->second.data_length, true); 
+        }
+      }  
+}
+
 
 extern "C" bool init_plugin(void *self) {
     panda_arg_list *args = panda_get_args("replayer_map");
     auto base = panda_parse_ulong_opt(args, "base", 0x40000000, "Base physical address to replay at");
     std::cout << "replayer_map starting at \n" << std::hex << base << std::endl;
 
-    char *map_name = panda_parse_string_opt(args, "map_name", NULL, "Name of the map object in shared memory, either mount_map or workload_map");
-    std::cout << "replaying operations in " << map_name << std::endl;
-
     std::cout << "about to open managed_shared_memory\n" << std::hex << base << std::endl;
     segment = managed_shared_memory(open_only, "MySharedMemory1");
     std::pair<MyMap*, managed_shared_memory::size_type> res;
 
-    res = segment.find<MyMap> (map_name);
-    snapshot_map = res.first;
+    res = segment.find<MyMap> ("mount_map");
+    mount_map = res.first;
+    workload_map = segment.find<MyMap> ("workload_map").first; 
 
     std::cout << "shared memory opened \n" << std::hex << base << std::endl;
 
     // print_snapshot_map();
 
     std::cout << "about to put stuff into panda\n" << std::endl;
+    
+    replay_map(mount_map);
+    replay_map(workload_map);
 
-    for (auto map_iterator = snapshot_map->begin(); map_iterator != snapshot_map->end(); ++map_iterator) {
-        if(map_iterator->second.data_length != 0){
-          panda_physical_memory_rw((uint64_t) base + (uint64_t) map_iterator->first, (uint8_t *) map_iterator->second.data, map_iterator->second.data_length, true); 
-        }
-      }  
-
-   std::cout << "replayer done, change made outside of vm" << std::endl;
-   shared_memory_object::remove("MySharedMemory1");
-   std::cout << "removed shared memory" << std::endl;
-   return true;
+    std::cout << "replayer done, change made outside of vm" << std::endl;
+    shared_memory_object::remove("MySharedMemory1");
+    std::cout << "removed shared memory" << std::endl;
+    return true;
 }
 
 
