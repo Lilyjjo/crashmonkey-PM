@@ -224,7 +224,8 @@ int main(int argc, char** argv) {
 	//*** New code for snapshot of mount command, starts write tracker plugin:
 	SockMessage msg;
 	msg = SockMessage();
-	vm->BuildLoadPluginMsg(msg, pWritetracker, begin_trace_addr, end_trace_addr, mount_map);
+	string mount_map_name("mount_map");
+	vm->BuildLoadPluginMsg(msg, pWritetracker, begin_trace_addr, end_trace_addr, map_name);
 	
 	if (vm->SendCommand(msg) != eNone ) {
 		int err_no = errno;
@@ -335,8 +336,8 @@ int main(int argc, char** argv) {
 	* 	insert a sec of sleep to read the contents  
 	************************************************************/
  	msg = SockMessage();
-
-	vm->BuildLoadPluginMsg(msg, pWritetracker, begin_trace_addr, end_trace_addr, workload_map);
+	string workload_map_name("workload_map");
+	vm->BuildLoadPluginMsg(msg, pWritetracker, begin_trace_addr, end_trace_addr, workload_map_name);
 	
 	if (vm->SendCommand(msg) != eNone ) {
 		int err_no = errno;
