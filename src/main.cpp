@@ -220,6 +220,20 @@ int main(int argc, char** argv) {
 	* 2. Format and snapshot the initial record device
 	************************************************************/
 	
+
+	//*** New code for snapshot of mount command, starts write tracker plugin:
+	SockMessage msg;
+	msg = SockMessage();
+	vm->BuildLoadPluginMsg(msg, pWritetracker, begin_trace_addr, end_trace_addr, mount_map);
+	
+	if (vm->SendCommand(msg) != eNone ) {
+		int err_no = errno;
+		cout << "Error sending message" << endl;
+		return -1;
+	}
+	vm->ReceiveReply(msg);
+    //*** end new code
+
 	string mnt = "/mnt/pmem0";
 	FSCommands *fs_command_ = NULL;
 	fs_command_ = GetFSCommands(fs);
@@ -231,8 +245,18 @@ int main(int argc, char** argv) {
 		pm_tester.cleanup_harness();
 		return -1;
 	}
-	//system((fs_command_->GetMkfsCommand(record_device_path, mnt)).c_str());
 
+	//*** New code for unloading write tracker plugin
+	msg = SockMessage();
+	vm->BuildUnloadPluginMsg(msg, 0);
+	
+	if (vm->SendCommand(msg) != eNone ) {
+		int err_no = errno;
+		cout << "Error sending message" << endl;
+		return -1;
+	}
+	vm->ReceiveReply(msg);
+    //*** end new code
 
 	// FOr some reason, NOVA fails to mount if we dont snapshot
 	// after the unmount. FOr now include unmount in the inital snapshot
@@ -240,6 +264,9 @@ int main(int argc, char** argv) {
 	// TODO: Ask about this in the NOVA mailing list	
 	// umount the device
 	
+	/*** New code: commenting out snap shots:
+
+
 	if (fs.compare("NOVA") == 0) {
 		cout << "Unmount the record device" << endl;
 		if (pm_tester.umount_device() != SUCCESS) {
@@ -251,6 +278,8 @@ int main(int argc, char** argv) {
 
 
 	// Snapshot the initial FS image
+
+
 	if (pm_tester.snapshot_device() != SUCCESS) {
 		cerr << "Error snapshotting" << endl;
 		pm_tester.cleanup_harness();
@@ -265,6 +294,10 @@ int main(int argc, char** argv) {
 		pm_tester.cleanup_harness();
 		return -1;
 	}
+
+
+
+
 	//cmd = "scripts/apply_snapshot.sh " + to_string(record_size);
 	//system(cmd.c_str());
 
@@ -278,6 +311,11 @@ int main(int argc, char** argv) {
 			return -1;
 		}
 	}
+
+
+	*** end of commenting out snapshots*/ 
+
+
 	cout << "Mounted file system. Ready for workload execution" << endl;
 	system("mount | grep pmem");
 
@@ -296,10 +334,9 @@ int main(int argc, char** argv) {
 	* 	reply string for error messages? But I need to
 	* 	insert a sec of sleep to read the contents  
 	************************************************************/
+ 	msg = SockMessage();
 
-
-	SockMessage msg;
-	vm->BuildLoadPluginMsg(msg, pWritetracker, begin_trace_addr, end_trace_addr);
+	vm->BuildLoadPluginMsg(msg, pWritetracker, begin_trace_addr, end_trace_addr, workload_map);
 	
 	if (vm->SendCommand(msg) != eNone ) {
 		int err_no = errno;
