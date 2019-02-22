@@ -37,7 +37,7 @@ managed_shared_memory segment;
 
 // method to print out map, can only be called after shared memory access is set up
 __attribute__((unused))
-static void print_snapshot_map() {
+static void print_snapshot_map(MyMap *snapshot_map) {
 
 	std::cout << "\n\n***** printing Snapshot Map *****\n"<< std::endl;
 	for (auto it = snapshot_map->begin(); it != snapshot_map->end(); ++it) {
@@ -46,7 +46,7 @@ static void print_snapshot_map() {
 	std::cout << "\nEnd of snapshot map\n" << std::endl;
 }
 
-void replay_map(MyMap *map) {
+void replay_map(MyMap *map, auto base) {
 
     for (auto map_iterator = map->begin(); map_iterator != map->end(); ++map_iterator) {
         if(map_iterator->second.data_length != 0){
@@ -75,8 +75,8 @@ extern "C" bool init_plugin(void *self) {
 
     std::cout << "about to put stuff into panda\n" << std::endl;
     
-    replay_map(mount_map);
-    replay_map(workload_map);
+    replay_map(mount_map, base);
+    replay_map(workload_map, base);
 
     std::cout << "replayer done, change made outside of vm" << std::endl;
     shared_memory_object::remove("MySharedMemory1");

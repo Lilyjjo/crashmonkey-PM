@@ -12,7 +12,7 @@
 
 static target_ulong range_start;
 static target_ulong range_end;
-static char *map_name;
+const char *map_name;
 
 static std::ofstream ofs;
 
