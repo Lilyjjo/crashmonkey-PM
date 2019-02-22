@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
 	}
 
 	// Print the settings in which CrashMonkey-PM would run
-	cout << "\n******** Running CrashMonkey-PM **********\n" << endl;
+	cout << "\n******** Running CrashMonkey-PM FROM MODIFED FILE **********\n" << endl;
 	cout << setw(30) << left << "Remote IP address" << setw(2) << left << ":"
 	     << setw(2) << left << remote_ip << endl; 
 
@@ -315,7 +315,7 @@ int main(int argc, char** argv) {
 	//dummy workload for now
 	//system("./workload seq 4K 4K overwrite 1");
 	//system("./workload seq 1 4K");
-	system("./workload");
+//	system("./workload");
 
 
 	cout << "Running j-lang test profile" << endl;
@@ -465,7 +465,7 @@ int main(int argc, char** argv) {
 	log_file.close();
 
 	// This will unmount the record device
-	pm_tester.cleanup_harness();
+	//pm_tester.cleanup_harness();
 	
 	// generalize the umount function in Tester
 	system("umount /mnt/pmem1");

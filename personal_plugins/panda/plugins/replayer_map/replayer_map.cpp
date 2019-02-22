@@ -62,7 +62,7 @@ extern "C" bool init_plugin(void *self) {
         }
       }  
 
-   std::cout << "replay done" << std::endl;
+   std::cout << "replay_map done" << std::endl;
    return true;
 }
 
