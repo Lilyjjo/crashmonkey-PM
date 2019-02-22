@@ -293,8 +293,8 @@ extern "C" bool init_plugin(void *self) {
     
     //A managed shared memory where we can construct objects
     segment = managed_shared_memory(open_or_create,
-                                 "MySharedMemory1",  //segment name
-                                 100000*sizeof(std::pair<char*,struct write_data_st>));
+                                 "MySharedMemory2",  //segment name
+                                 1000000*sizeof(std::pair<char*,struct write_data_st>));
 
    // create allocator for shared memory 
    const ShmemAllocator alloc_inst (segment.get_segment_manager());

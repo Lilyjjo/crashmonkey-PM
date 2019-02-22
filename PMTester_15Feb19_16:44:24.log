@@ -1,8 +1,0 @@
-Loading the test
-Connected to QEMU monitor
-Formating record device /dev/pmem0
-Test #1: FAILED: auto_check_test_failed
-	fsck result: fsck_not_run
-	fsck output:
-
-
