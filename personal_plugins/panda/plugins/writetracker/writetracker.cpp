@@ -2,9 +2,14 @@
 #include <fstream>
 #include <cstdlib>
 #include <memory>
-#include <map>
+//#include <map>
 #include <vector>
 #include "panda/plugin.h"
+
+//shared memory includes:
+#include <boost/interprocess/containers/map.hpp>
+#include <boost/interprocess/allocators/allocator.hpp>
+#include <boost/interprocess/managed_shared_memory.hpp>
 
 static target_ulong range_start;
 static target_ulong range_end;
@@ -12,25 +17,32 @@ static target_ulong range_end;
 static std::ofstream ofs;
 
 static std::unique_ptr<std::ofstream> output;
-using namespace std;
+
+struct write_data_st {
+    char data[8];
+    size_t data_length;
+    bool is_flushed;
+};
+
+using namespace boost::interprocess;
+
+// allocator so we can allocate all of our map from the shared memory region
+typedef allocator<std::pair<char * const, struct write_data_st>, managed_shared_memory::segment_manager>
+      ShmemAllocator;
+// map we're using
+typedef map< char *, struct write_data_st, std::less<char *>, ShmemAllocator> MyMap;
+
+//declared global so it isn't automatically destroyed because of it's scope ending
+managed_shared_memory segment;
+
+// initialed in init_plugin
+MyMap* snapshot_map;
 
 enum event_type : int {
   WRITE,
   FLUSH,
   FENCE,
 };
-
-
-// ******* New code:
-
-struct write_data_st {
-    char * data;
-    size_t data_length;
-    bool is_flushed;
-};
-
-// key is offset into pm device, val is write_data_st which has pointer to data which was written
-std::map<char *, write_data_st*> snapshot_map;
 
 // **********
 /* @param pc program counter
@@ -45,52 +57,42 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
   switch (type) {
   case WRITE: {
     // ******* New code:
-    std::map<char *, struct write_data_st *>::iterator map_iterator;
-    map_iterator = snapshot_map.find(reinterpret_cast<char*>(offset));
-    if (map_iterator == snapshot_map.end()){
-      //key not yet in map, add it
-      //put data into write_data_st 
-      write_data_st * wdst = (struct write_data_st *) malloc(sizeof(struct write_data_st));
-      wdst->data = (char *) malloc(write_size);
-      wdst->data_length = (size_t) write_size;
-      wdst->is_flushed = false;
-      memcpy(wdst->data, reinterpret_cast<char*>(write_data), write_size);
-      snapshot_map.insert(std::pair<char *, struct write_data_st *>(reinterpret_cast<char*>(offset), wdst));
-
-      } else {      //key in map, just modify it
-        write_data_st * wdst = map_iterator->second;
-        
-        std::free((char*)wdst->data);
-        wdst->data = (char *) malloc(write_size);
+    auto map_iterator = snapshot_map->find(reinterpret_cast<char*>(offset));
+    if (map_iterator == snapshot_map->end()){
+        //key not yet in map, add it
+        //put data into write_data_st 
+        write_data_st wdst;
+        wdst.data_length = (size_t) write_size;
+        wdst.is_flushed = false;
+        memcpy(&(wdst.data), reinterpret_cast<char*>(write_data), write_size);
+        snapshot_map->insert(std::pair< char *, struct write_data_st>(reinterpret_cast< char*>(offset), wdst));
+    } else {      
+        //key in map, just modify it
+        write_data_st *wdst = &(map_iterator->second);
         wdst->data_length = (size_t) write_size;
-        memcpy(wdst->data, reinterpret_cast<char*>(write_data), write_size);
+        memcpy(&(wdst->data), reinterpret_cast<char*>(write_data), write_size);
       }
-
     // **********
 
     output->write(reinterpret_cast<char*>(&offset), sizeof(offset));
     output->write(reinterpret_cast<char*>(&write_size), sizeof(write_size));
     output->write(reinterpret_cast<char*>(write_data), write_size);
-    ofs << "\nWrite ins " << offset << "\n";
     break;
   }
   case FLUSH: {
     //check to see if already in map or not
-    std::map<char *, struct write_data_st *>::iterator map_iterator;
-    map_iterator = snapshot_map.find(reinterpret_cast<char*>(offset));
-    if (map_iterator == snapshot_map.end()){
-      //key not yet in map, add it
-      //put data into write_data_st 
-      write_data_st * wdst = (struct write_data_st *) malloc(sizeof(struct write_data_st));
-      wdst->data = NULL;
-      wdst->data_length = 0;
-      wdst->is_flushed = true;
-      snapshot_map.insert(std::pair<char *, struct write_data_st *>(reinterpret_cast<char*>(offset), wdst));
-
+    auto map_iterator = snapshot_map->find(reinterpret_cast< char*>(offset));
+    if (map_iterator == snapshot_map->end()){
+        //key not yet in map, add it
+        //put data into write_data_st 
+        write_data_st wdst;
+        wdst.data_length = 0;
+        wdst.is_flushed = true;
+        snapshot_map->insert(std::pair< char *, struct write_data_st>(reinterpret_cast< char*>(offset), wdst));
     } else {
-      //key in map, just modify it
-      write_data_st * wdst = map_iterator->second;
-      wdst->is_flushed = true;
+        //key in map, just modify it
+        write_data_st * wdst = &(map_iterator->second);
+        wdst->is_flushed = true;
     }
     output->write(reinterpret_cast<char*>(&offset), sizeof(offset));
     break;
@@ -102,16 +104,17 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
   }
 }
 
+
+
+// method to print out map, can only be called after shared memory access is set up
+__attribute__((unused))
 static void print_snapshot_map() {
 
-    std::cout << "\n\n***** printing Snapshot Map *****\n"<< endl;
-    std::map<char *, struct write_data_st *>::iterator it;
-    for ( it = snapshot_map.begin(); it != snapshot_map.end(); ++it) {
-      char write_data [it->second->data_length];
-      memcpy(write_data, it->second->data, it->second->data_length);
-      std::cout << (target_ulong) it->first << " => size: " << it->second->data_length << " data: " << write_data  << endl; 
+    std::cout << "\n\n***** printing Snapshot Map *****\n"<< std::endl;
+    for (auto it = snapshot_map->begin(); it != snapshot_map->end(); ++it) {
+      std::cout << (target_ulong) it->first << " => size: " << it->second.data_length << " data: " << it->second.data << std::endl; 
     }   
-    std::cout << "\nEnd of snapshot map\n" << endl;
+    std::cout << "\nEnd of snapshot map\n" << std::endl;
 }
 
 
@@ -280,14 +283,38 @@ extern "C" bool init_plugin(void *self) {
     output = std::unique_ptr<std::ofstream>(new std::ofstream("wt.out", std::ios::binary));
 
     ofs.open ("out.log", std::ofstream::out);
-    return true;
+
+    //shared memory code: 
+
+    using namespace boost::interprocess;
+    
+    //A managed shared memory where we can construct objects
+    segment = managed_shared_memory(create_only,
+                                 "MySharedMemory1",  //segment name
+                                 100000*sizeof(std::pair<char*,struct write_data_st>));
+
+   // create allocator for shared memory 
+   const ShmemAllocator alloc_inst (segment.get_segment_manager());
+  
+   // create map inside of shared memory segment
+   snapshot_map =
+      segment.construct<MyMap>
+         ("MyMap")      /*object name*/
+	       (std::less<char *>(),
+         alloc_inst);
+
+   std::cout << "end of init write tracker plugin \n" << std::endl;
+   return true;
 }
 
 extern "C" void uninit_plugin(void *self) {
-    
+
     // Printing snapshot map
-    std::cout << "\n\n inside of uninit_plugin, about to print out map. \n" << endl;
-    print_snapshot_map();
+    //std::cout << "\n\n inside of uninit_plugin, about to print out map. \n" << std::endl;
+    //print_snapshot_map();
+
+    //NOTE: shared memory is deleted inside of the replayer_map.cpp, 
+    //      if that plugin isn't run then the shared memory isn't deleted 
 
     // Existing code
     output.reset();
