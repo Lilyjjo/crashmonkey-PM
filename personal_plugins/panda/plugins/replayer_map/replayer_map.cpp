@@ -46,7 +46,7 @@ static void print_snapshot_map(MyMap *snapshot_map) {
 	std::cout << "\nEnd of snapshot map\n" << std::endl;
 }
 
-void replay_map(MyMap *map, auto base) {
+void replay_map(MyMap *map, target_ulong base) {
 
     for (auto map_iterator = map->begin(); map_iterator != map->end(); ++map_iterator) {
         if(map_iterator->second.data_length != 0){
