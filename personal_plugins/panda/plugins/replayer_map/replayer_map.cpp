@@ -62,7 +62,7 @@ extern "C" bool init_plugin(void *self) {
     std::cout << "replayer_map starting at \n" << std::hex << base << std::endl;
 
     std::cout << "about to open managed_shared_memory\n" << std::hex << base << std::endl;
-    segment = managed_shared_memory(open_only, "MySharedMemory2");
+    segment = managed_shared_memory(open_only, "MySharedMemory4");
     std::pair<MyMap*, managed_shared_memory::size_type> res;
 
     res = segment.find<MyMap> ("mount_map");
@@ -71,7 +71,8 @@ extern "C" bool init_plugin(void *self) {
 
     std::cout << "shared memory opened \n" << std::hex << base << std::endl;
 
-    // print_snapshot_map();
+    print_snapshot_map(mount_map);
+    print_snapshot_map(workload_map);
 
     std::cout << "about to put stuff into panda\n" << std::endl;
     
@@ -79,7 +80,7 @@ extern "C" bool init_plugin(void *self) {
     replay_map(workload_map, base);
 
     std::cout << "replayer done, change made outside of vm" << std::endl;
-    shared_memory_object::remove("MySharedMemory2");
+    shared_memory_object::remove("MySharedMemory4");
     std::cout << "removed shared memory" << std::endl;
     return true;
 }

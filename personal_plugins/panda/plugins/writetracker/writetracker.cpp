@@ -254,7 +254,7 @@ extern "C" bool init_plugin(void *self) {
     panda_arg_list *args = panda_get_args("writetracker");
     range_start = panda_parse_ulong_opt(args, "start", 0x40000000, "Start address tracking range, default 1G");
     range_end = panda_parse_ulong_opt(args, "end", 0x48000000, "End address (exclusive) of tracking range, default 1G+128MB"); 
-    map_name = panda_parse_string_opt(args, "map_name", NULL, "Name of map, used to identify whether we are tracking the mount or the snapshot");   
+    map_name = panda_parse_string_opt(args, "map_name", "", "Name of map, used to identify whether we are tracking the mount or the snapshot");   
 
     std::cout << "writetracker loading" << std::endl;
     std::cout << "tracking range [" << std::hex << range_start << ", " << std::hex << range_end << ")" << std::endl;
@@ -293,8 +293,8 @@ extern "C" bool init_plugin(void *self) {
     
     //A managed shared memory where we can construct objects
     segment = managed_shared_memory(open_or_create,
-                                 "MySharedMemory2",  //segment name
-                                 1000000*sizeof(std::pair<char*,struct write_data_st>));
+                                 "MySharedMemory4",  //segment name
+                                 9000000*sizeof(std::pair<char*,struct write_data_st>));
 
    // create allocator for shared memory 
    const ShmemAllocator alloc_inst (segment.get_segment_manager());
