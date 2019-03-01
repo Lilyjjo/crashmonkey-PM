@@ -13,7 +13,8 @@ class ClientSocket {
 		~ClientSocket();
 		int Init();
 		void BuildLoadPluginMsg(SockMessage& msg, Plugins plugin_name, std::string start, std::string end);
-		void BuildLoadPluginMsgMap(SockMessage& msg, Plugins plugin_name, std::string start, std::string end, std::string map_name);
+		void BuildLoadPluginMsgMapReplay(SockMessage& msg, Plugins plugin_name, std::string memory_name, std::string map_name);
+		void BuildLoadPluginMsgMapTracker(SockMessage& msg, Plugins plugin_name, std::string start, std::string end, std::string memory_name, std::string map_name);
 		void BuildUnloadPluginMsg(SockMessage& msg, unsigned int idx);
 		SockError SendCommand(const SockMessage& msg);
 		SockError ReceiveReply(SockMessage& msg);

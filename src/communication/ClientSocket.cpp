@@ -66,13 +66,23 @@ void ClientSocket::BuildLoadPluginMsg(SockMessage& msg, Plugins plugin_name, str
 	msg.q_cmd_options->end = end;
 }
 
-void ClientSocket::BuildLoadPluginMsgMap(SockMessage& msg, Plugins plugin_name, string start, string end, string map_name) {
+void ClientSocket::BuildLoadPluginMsgMapTracker(SockMessage& msg, Plugins plugin_name, string start, string end, string memory_name, string map_name) {
 	msg.q_cmd = cLoadPlugin;
 	msg.need_response = false;
 	msg.q_cmd_options->plugin_name =plugin_name;
 	msg.q_cmd_options->start = start;
 	msg.q_cmd_options->end = end;
 	msg.q_cmd_options->map_name = map_name;
+	msg.q_cmd_options->memory_name = memory_name;
+}
+
+void ClientSocket::BuildLoadPluginMsgMapReplay(SockMessage& msg, Plugins plugin_name, string memory_name, string map_name) {
+	msg.q_cmd = cLoadPlugin;
+	msg.need_response = false;
+	msg.q_cmd_options->plugin_name =plugin_name;
+	msg.q_cmd_options->start = start;
+	msg.q_cmd_options->map_name = map_name;
+	msg.q_cmd_options->memory_name = memory_name;
 }
 
 
@@ -114,7 +124,6 @@ SockError ClientSocket::SendCommand(const SockMessage& msg) {
 						complete_command += options.start;
 						isCustomStart = true;
 					}
-
 					if (! options.end.empty()) {
 						if (isCustomStart)
 							complete_command += ",";
@@ -126,6 +135,12 @@ SockError ClientSocket::SendCommand(const SockMessage& msg) {
 							complete_command += ",";
 						complete_command += "map_name=";
 						complete_command += options.map_name;
+					}
+					if (! options.memory_name.empty()) {
+						if (isCustomStart)
+							complete_command += ",";
+						complete_command += "memory_name=";
+						complete_command += options.memory_name;
 					}
 					break;
 				case pReplay:
@@ -140,6 +155,18 @@ SockError ClientSocket::SendCommand(const SockMessage& msg) {
 					if (! options.start.empty()) {
 						complete_command += " base=";
 						complete_command += options.start;
+					}
+					if (! options.memory_name.empty()) {
+						if (isCustomStart)
+							complete_command += ",";
+						complete_command += "memory_name=";
+						complete_command += options.memory_name;
+					}
+					if (! options.map_name.empty()) {
+						if (isCustomStart)
+							complete_command += ",";
+						complete_command += "map_name=";
+						complete_command += options.map_name;
 					}
 					break;
 				default:

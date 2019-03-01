@@ -17,6 +17,10 @@ static const int FLUSH = 1;
 static const int FENCE = 2;
 
 
+const char *map_name;
+const char *memory_name;
+
+
 //TODO figure out how to put write_data_st into a header somewhere, rn it's also declared in writetracker.cpp
 struct write_data_st {
     char data[8];
@@ -29,7 +33,7 @@ typedef allocator<std::pair<char * const, struct write_data_st>, managed_shared_
 
 typedef map< char *, struct write_data_st, std::less<char *>, ShmemAllocator> MyMap;
 
-MyMap* mount_map;
+MyMap* named_map;
 MyMap* workload_map;
 
 managed_shared_memory segment;
@@ -59,28 +63,39 @@ void replay_map(MyMap *map, target_ulong base) {
 extern "C" bool init_plugin(void *self) {
     panda_arg_list *args = panda_get_args("replayer_map");
     auto base = panda_parse_ulong_opt(args, "base", 0x40000000, "Base physical address to replay at");
+    map_name = panda_parse_string_opt(args, "map_name", "ERROR", "Name of map to store writes in");  
+    memory_name = panda_parse_string_opt(args, "memory_name", "ERROR", "Name of memory region to find objects in");  
+
     std::cout << "replayer_map starting at \n" << std::hex << base << std::endl;
+    std::cout << "shared memory name: " << memory_name << std::endl; 
+    std::cout << "named map name: " << map_name << std::endl; 
 
     std::cout << "about to open managed_shared_memory\n" << std::hex << base << std::endl;
-    segment = managed_shared_memory(open_only, "MySharedMemory4");
+    segment = managed_shared_memory(open_only, memory_name);
     std::pair<MyMap*, managed_shared_memory::size_type> res;
+    std::cout << "managed_shared_memory opened\n" << std::hex << base << std::endl;
 
-    res = segment.find<MyMap> ("mount_map");
-    mount_map = res.first;
+    std::cout << "about to open named map\n" << std::hex << base << std::endl;
+    res = segment.find<MyMap> (map_name);
+    named_map = res.first;
+    std::cout << "named map opened\n" << std::hex << base << std::endl;
+
+
+    std::cout << "about to open hardcoded workload_map\n" << std::hex << base << std::endl;
     workload_map = segment.find<MyMap> ("workload_map").first; 
+    std::cout << "hardcoded workload_map opened\n" << std::hex << base << std::endl;
 
-    std::cout << "shared memory opened \n" << std::hex << base << std::endl;
 
-    print_snapshot_map(mount_map);
+    print_snapshot_map(named_map);
     print_snapshot_map(workload_map);
 
     std::cout << "about to put stuff into panda\n" << std::endl;
     
-    replay_map(mount_map, base);
+    replay_map(named_map, base);
     replay_map(workload_map, base);
 
-    std::cout << "replayer done, change made outside of vm" << std::endl;
-    shared_memory_object::remove("MySharedMemory4");
+    std::cout << "replayer done, about to remove shared memory" << std::endl;
+    shared_memory_object::remove(memory_name);
     std::cout << "removed shared memory" << std::endl;
     return true;
 }

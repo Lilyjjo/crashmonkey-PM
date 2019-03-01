@@ -225,7 +225,8 @@ int main(int argc, char** argv) {
 	SockMessage msg;
 	msg = SockMessage();
 	string mount_map_name("mount_map");
-	vm->BuildLoadPluginMsgMap(msg, pWritetracker, begin_trace_addr, end_trace_addr, mount_map_name);
+	string mount_memory_name("x01");
+	vm->BuildLoadPluginMsgMapTracker(msg, pWritetracker, begin_trace_addr, end_trace_addr, mount_memory_name, mount_map_name);
 	
 	if (vm->SendCommand(msg) != eNone ) {
 		int err_no = errno;
@@ -339,7 +340,8 @@ int main(int argc, char** argv) {
 	************************************************************/
  	msg = SockMessage();
 	string workload_map_name("workload_map");
-	vm->BuildLoadPluginMsgMap(msg, pWritetracker, begin_trace_addr, end_trace_addr, workload_map_name);
+	//currently using same shared memory map as mount write tracker, workload map is hard coded in replayer rn
+	vm->BuildLoadPluginMsgMapTracker(msg, pWritetracker, begin_trace_addr, end_trace_addr, mount_memory_name, workload_map_name);
 	
 	if (vm->SendCommand(msg) != eNone ) {
 		int err_no = errno;
@@ -466,7 +468,8 @@ int main(int argc, char** argv) {
 	*	EOF
 	************************************************************/
         msg = SockMessage();
-        vm->BuildLoadPluginMsg(msg, pReplayMap, begin_replay_addr, end_trace_addr);
+        //don't have name var for non-mount snapshot maps, should make/use standard naming convention?
+        vm->BuildLoadPluginMsgMapReplay(msg, pReplayMap, begin_replay_addr, mount_memory_name, mount_map_name);
 
         if (vm->SendCommand(msg) != eNone ) {
                 int err_no = errno;

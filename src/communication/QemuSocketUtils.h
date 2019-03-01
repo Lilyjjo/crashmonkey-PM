@@ -26,6 +26,7 @@ typedef struct {
 	std::string start;
 	std::string end;
 	std::string map_name;
+	std::string memory_name;
 	unsigned int id;
 }CommandOpts;
 
