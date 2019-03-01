@@ -338,17 +338,17 @@ int main(int argc, char** argv) {
 	* 	reply string for error messages? But I need to
 	* 	insert a sec of sleep to read the contents  
 	************************************************************/
- 	msg = SockMessage();
+ 	SockMessage msg_test = SockMessage();
 	string workload_map_name("workload_map");
 	//currently using same shared memory map as mount write tracker, workload map is hard coded in replayer rn
-	vm->BuildLoadPluginMsgMapTracker(msg, pWritetracker, begin_trace_addr, end_trace_addr, mount_memory_name, workload_map_name);
+	vm->BuildLoadPluginMsgMapTracker(msg_test, pWritetracker, begin_trace_addr, end_trace_addr, mount_memory_name, workload_map_name);
 	
-	if (vm->SendCommand(msg) != eNone ) {
+	if (vm->SendCommand(msg_test) != eNone ) {
 		int err_no = errno;
 		cout << "Error sending message" << endl;
 		return -1;
 	}
-	vm->ReceiveReply(msg);
+	vm->ReceiveReply(msg_test);
 
 	/***********************************************************
 	* 3. Execute the workload
@@ -434,16 +434,16 @@ int main(int argc, char** argv) {
 	* 	will be in a file named wt.out on the remote host.  
 	************************************************************/
 
-	msg = SockMessage();
-	vm->BuildUnloadPluginMsg(msg, 0);
+	msg_test = SockMessage();
+	vm->BuildUnloadPluginMsg(msg_test, 0);
 	
-	if (vm->SendCommand(msg) != eNone ) {
+	if (vm->SendCommand(msg_test) != eNone ) {
 		int err_no = errno;
 		cout << "Error sending message" << endl;
 		return -1;
 	}
 	//sleep(1);
-	vm->ReceiveReply(msg);
+	vm->ReceiveReply(msg_test);
 
 
 	// umount the record device

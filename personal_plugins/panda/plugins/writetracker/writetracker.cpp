@@ -255,8 +255,8 @@ extern "C" bool init_plugin(void *self) {
     panda_arg_list *args = panda_get_args("writetracker");
     range_start = panda_parse_ulong_opt(args, "start", 0x40000000, "Start address tracking range, default 1G");
     range_end = panda_parse_ulong_opt(args, "end", 0x48000000, "End address (exclusive) of tracking range, default 1G+128MB"); 
-    map_name = panda_parse_string_opt(args, "map_name", "", "Name of map to store writes in");  
-    memory_name = panda_parse_string_opt(args, "memory_name", "", "Name of memory region to find objects in");  
+    map_name = panda_parse_string_opt(args, "map_name", "ERROR", "Name of map to store writes in");  
+    memory_name = panda_parse_string_opt(args, "memory_name", "ERROR", "Name of memory region to find objects in");  
 
     std::cout << "writetracker loading" << std::endl;
     std::cout << "tracking range [" << std::hex << range_start << ", " << std::hex << range_end << ")" << std::endl;
@@ -295,11 +295,11 @@ extern "C" bool init_plugin(void *self) {
     using namespace boost::interprocess;
     
     //A managed shared memory where we can construct objects
-    std::cout << "about to open/create shared memory\n" << std::endl;
+    std::cout << "about to open/create shared memory" << std::endl;
     segment = managed_shared_memory(open_or_create,
                                  memory_name,  //segment name
                                  1900000*sizeof(std::pair<char*,struct write_data_st>));
-    std::cout << "successfully opened/created memory\n" << std::endl;
+    std::cout << "successfully opened/created memory" << std::endl;
 
 
    // create allocator for shared memory 
