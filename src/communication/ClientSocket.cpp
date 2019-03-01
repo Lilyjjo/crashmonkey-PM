@@ -76,7 +76,7 @@ void ClientSocket::BuildLoadPluginMsgMapTracker(SockMessage& msg, Plugins plugin
 	msg.q_cmd_options->memory_name = memory_name;
 }
 
-void ClientSocket::BuildLoadPluginMsgMapReplay(SockMessage& msg, Plugins plugin_name, string memory_name, string map_name) {
+void ClientSocket::BuildLoadPluginMsgMapReplay(SockMessage& msg, Plugins plugin_name, string start, string memory_name, string map_name) {
 	msg.q_cmd = cLoadPlugin;
 	msg.need_response = false;
 	msg.q_cmd_options->plugin_name =plugin_name;
