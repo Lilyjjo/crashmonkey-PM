@@ -233,6 +233,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 	vm->ReceiveReply(msg);
+	cout << "loaded write tracker plugin for mkfs/mount phase\n" << endl;
     //*** end new code
 
 	string mnt = "/mnt/pmem0";
@@ -257,6 +258,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 	vm->ReceiveReply(msg);
+	cout << "mkfs/mounting complete, unloaded write_tracker around mkfs/mount command\n" << endl;
     //*** end new code
 
 	// FOr some reason, NOVA fails to mount if we dont snapshot
