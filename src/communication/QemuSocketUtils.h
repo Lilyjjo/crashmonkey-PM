@@ -41,8 +41,8 @@ typedef enum {
 struct SockMessage {
 	QemuCommand q_cmd;
 	bool need_response;
-	std::unique_ptr<CommandOpts> q_cmd_options;
-	SockMessage() : q_cmd_options(new CommandOpts()) {}
+	CommandOpts q_cmd_options;
+	//SockMessage() : q_cmd_options(new CommandOpts()) {}
 };
 
 } // namespace communication

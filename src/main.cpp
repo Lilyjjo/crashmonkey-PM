@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
 	SockMessage msg;
 	msg = SockMessage();
 	string mount_map_name("mount_map");
-	string mount_memory_name("x01");
+	string mount_memory_name("x04");
 	vm->BuildLoadPluginMsgMapTracker(msg, pWritetracker, begin_trace_addr, end_trace_addr, mount_memory_name, mount_map_name);
 	
 	if (vm->SendCommand(msg) != eNone ) {
