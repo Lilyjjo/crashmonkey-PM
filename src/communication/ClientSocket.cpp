@@ -143,6 +143,33 @@ SockError ClientSocket::SendCommand(const SockMessage& msg) {
 						complete_command += options.memory_name;
 					}
 					break;
+
+				case pMounttracker:
+					complete_command += "mount_tracker";
+					if (! options.start.empty()) {
+						complete_command += " start=";
+						complete_command += options.start;
+						isCustomStart = true;
+					}
+					if (! options.end.empty()) {
+						if (isCustomStart)
+							complete_command += ",";
+						complete_command += "end=";
+						complete_command += options.end;
+					}
+					if (! options.map_name.empty()) {
+						if (isCustomStart)
+							complete_command += ",";
+						complete_command += "map_name=";
+						complete_command += options.map_name;
+					}
+					if (! options.memory_name.empty()) {
+						if (isCustomStart)
+							complete_command += ",";
+						complete_command += "memory_name=";
+						complete_command += options.memory_name;
+					}
+					break;
 				case pReplay:
 					complete_command += "replayer";
 					if (! options.start.empty()) {

@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
 	msg = SockMessage();
 	string mount_map_name("mount_map");
 	string mount_memory_name("x07");
-	vm->BuildLoadPluginMsgMapTracker(msg, pWritetracker, begin_trace_addr, end_trace_addr, mount_memory_name, mount_map_name);
+	vm->BuildLoadPluginMsgMapTracker(msg, pMounttracker, begin_trace_addr, end_trace_addr, mount_memory_name, mount_map_name);
 	
 	if (vm->SendCommand(msg) != eNone ) {
 		int err_no = errno;
@@ -259,7 +259,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 	vm->ReceiveReply(msg);
-	cout << "mkfs/mounting complete, unloaded write_tracker around mkfs/mount command\n" << endl;
+	cout << "mkfs/mounting complete, unloaded mount_tracker around mkfs/mount command\n" << endl;
     //*** end new code
 
 	// FOr some reason, NOVA fails to mount if we dont snapshot
