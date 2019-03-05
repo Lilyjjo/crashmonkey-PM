@@ -12,8 +12,8 @@
 
 static target_ulong range_start;
 static target_ulong range_end;
-const char *map_name;
-const char *memory_name;
+char map_name[15];
+char memory_name[15];
 
 static std::ofstream ofs;
 
@@ -255,8 +255,8 @@ extern "C" bool init_plugin(void *self) {
     panda_arg_list *args = panda_get_args("writetracker");
     range_start = panda_parse_ulong_opt(args, "start", 0x40000000, "Start address tracking range, default 1G");
     range_end = panda_parse_ulong_opt(args, "end", 0x48000000, "End address (exclusive) of tracking range, default 1G+128MB"); 
-    map_name = panda_parse_string_opt(args, "map_name", "ERROR", "Name of map to store writes in");  
-    memory_name = panda_parse_string_opt(args, "memory_name", "ERROR", "Name of memory region to find objects in");  
+    strcpy(map_name, const_cast<char *>(panda_parse_string_opt(args, "map_name", "ERROR", "Name of map to store writes in")));
+    strcpy(memory_name, const_cast<char *>(panda_parse_string_opt(args, "memory_name", "ERROR", "Name of memory region to find objects in")));  
 
     std::cout << "writetracker loading" << std::endl;
     std::cout << "tracking range [" << std::hex << range_start << ", " << std::hex << range_end << ")" << std::endl;
@@ -311,6 +311,8 @@ extern "C" bool init_plugin(void *self) {
          (map_name)      /*object name*/
 	       (std::less<char *>(),
          alloc_inst);
+   // hopefully this clears the name of the map
+   panda_free_args(args);
 
    std::cout << "end of init " << map_name << " tracker plugin \n" << std::endl;
    return true;
