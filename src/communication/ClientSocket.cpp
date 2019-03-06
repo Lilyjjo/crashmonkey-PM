@@ -175,6 +175,7 @@ SockError ClientSocket::SendCommand(const SockMessage& msg) {
 					if (! options.start.empty()) {
 						complete_command += " base=";
 						complete_command += options.start;
+						isCustomStart = true;
 					}
 					break;
 				case pReplayMap:

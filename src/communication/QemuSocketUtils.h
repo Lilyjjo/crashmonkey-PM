@@ -16,6 +16,7 @@ typedef enum {
 } QemuCommand;
 
 typedef enum {
+	pMounttracker,
 	pWritetracker,
 	pReplay,
 	pReplayMap
