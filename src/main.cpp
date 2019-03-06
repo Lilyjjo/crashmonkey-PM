@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
 	SockMessage msg;
 	msg = SockMessage();
 	string mount_map_name("mount_map");
-	string mount_memory_name("x07");
+	string mount_memory_name("x12");
 	vm->BuildLoadPluginMsgMapTracker(msg, pMounttracker, begin_trace_addr, end_trace_addr, mount_memory_name, mount_map_name);
 	
 	if (vm->SendCommand(msg) != eNone ) {
@@ -340,9 +340,8 @@ int main(int argc, char** argv) {
 	************************************************************/
  	SockMessage msg_test = SockMessage();
 	string workload_map_name("workload_map");
-        string mount_map_name("mount_map");
 	//currently using same shared memory map as mount write tracker, workload map is hard coded in replayer rn
-	vm->BuildLoadPluginMsgMapTracker(msg_test, pWritetracker, begin_trace_addr, end_trace_addr, mount_memory_name, mount_map_name);
+	vm->BuildLoadPluginMsgMapTracker(msg_test, pWritetracker, begin_trace_addr, end_trace_addr, mount_memory_name, workload_map_name);
 	
 	if (vm->SendCommand(msg_test) != eNone ) {
 		int err_no = errno;
