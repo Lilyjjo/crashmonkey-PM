@@ -86,7 +86,7 @@ extern "C" bool init_plugin(void *self) {
     std::cout << "hardcoded workload_map opened\n" << std::hex << base << std::endl;
 
 
-    print_snapshot_map(map_name);
+    print_snapshot_map(named_map);
     print_snapshot_map(workload_map);
 
     std::cout << "about to put stuff into panda\n" << std::endl;
@@ -95,7 +95,7 @@ extern "C" bool init_plugin(void *self) {
     replay_map(workload_map, base);
     
     std::cout << "replayer done, about to remove shared memory objects" << std::endl;
-    segment.destroy<MyMap>(named_map); // mount map
+    segment.destroy<MyMap>(map_name); // mount map
     segment.destroy<MyMap>("workload_map");
     std::cout << "finished destroying the maps" << std::endl;
 
