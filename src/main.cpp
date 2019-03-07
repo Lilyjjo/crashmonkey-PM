@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
 	SockMessage msg;
 	msg = SockMessage();
 	string mount_map_name("mount_map");
-	string mount_memory_name("x12");
+	string mount_memory_name("x14");
 	vm->BuildLoadPluginMsgMapTracker(msg, pMounttracker, begin_trace_addr, end_trace_addr, mount_memory_name, mount_map_name);
 	
 	if (vm->SendCommand(msg) != eNone ) {
@@ -508,7 +508,7 @@ int main(int argc, char** argv) {
 	log_file.close();
 
 	// This will unmount the record device
-	//pm_tester.cleanup_harness();
+	pm_tester.cleanup_harness();
 	
 	// generalize the umount function in Tester
 	system("umount /mnt/pmem1");
