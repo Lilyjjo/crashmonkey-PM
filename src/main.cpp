@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
 	// Let's set some default values if the user doesn't provide args
 	string remote_ip("192.168.122.1");
 	//string remote_ip("127.0.0.1");
-	unsigned int remote_port = 4444;
+	unsigned int remote_port = 4443;
 	string begin_trace_addr(DEFAULT_START_ADDR);
 	string end_trace_addr(DEFAULT_END_ADDR);
 	string begin_replay_addr(DEFAULT_REPLAY_START_ADDR);
@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
 	}
 
 	// Print the settings in which CrashMonkey-PM would run
-	cout << "\n******** Running CrashMonkey-PM FROM MODIFED FILE **********\n" << endl;
+	cout << "\n******** Running CrashMonkey-PM **********\n" << endl;
 	cout << setw(30) << left << "Remote IP address" << setw(2) << left << ":"
 	     << setw(2) << left << remote_ip << endl; 
 
@@ -338,17 +338,17 @@ int main(int argc, char** argv) {
 	* 	reply string for error messages? But I need to
 	* 	insert a sec of sleep to read the contents  
 	************************************************************/
- 	SockMessage msg_test = SockMessage();
+ 	msg = SockMessage();
 	string workload_map_name("workload_map");
 	//currently using same shared memory map as mount write tracker, workload map is hard coded in replayer rn
-	vm->BuildLoadPluginMsgMapTracker(msg_test, pWritetracker, begin_trace_addr, end_trace_addr, mount_memory_name, workload_map_name);
+	vm->BuildLoadPluginMsgMapTracker(msg, pWritetracker, begin_trace_addr, end_trace_addr, mount_memory_name, workload_map_name);
 	
-	if (vm->SendCommand(msg_test) != eNone ) {
+	if (vm->SendCommand(msg) != eNone ) {
 		int err_no = errno;
 		cout << "Error sending message" << endl;
 		return -1;
 	}
-	vm->ReceiveReply(msg_test);
+	vm->ReceiveReply(msg);
 
 	/***********************************************************
 	* 3. Execute the workload
@@ -434,16 +434,16 @@ int main(int argc, char** argv) {
 	* 	will be in a file named wt.out on the remote host.  
 	************************************************************/
 
-	msg_test = SockMessage();
-	vm->BuildUnloadPluginMsg(msg_test, 0);
+	msg = SockMessage();
+	vm->BuildUnloadPluginMsg(msg, 0);
 	
-	if (vm->SendCommand(msg_test) != eNone ) {
+	if (vm->SendCommand(msg) != eNone ) {
 		int err_no = errno;
 		cout << "Error sending message" << endl;
 		return -1;
 	}
 	//sleep(1);
-	vm->ReceiveReply(msg_test);
+	vm->ReceiveReply(msg);
 
 
 	// umount the record device

@@ -61,35 +61,35 @@ int ClientSocket::Init() {
 void ClientSocket::BuildLoadPluginMsg(SockMessage& msg, Plugins plugin_name, string start, string end ) {
 	msg.q_cmd = cLoadPlugin;
 	msg.need_response = false;
-	msg.q_cmd_options.plugin_name =plugin_name;
-	msg.q_cmd_options.start = start;
-	msg.q_cmd_options.end = end;
+	msg.q_cmd_options->plugin_name =plugin_name;
+	msg.q_cmd_options->start = start;
+	msg.q_cmd_options->end = end;
 }
 
 void ClientSocket::BuildLoadPluginMsgMapTracker(SockMessage& msg, Plugins plugin_name, string start, string end, string memory_name, string map_name) {
 	msg.q_cmd = cLoadPlugin;
 	msg.need_response = false;
-	msg.q_cmd_options.plugin_name =plugin_name;
-	msg.q_cmd_options.start = start;
-	msg.q_cmd_options.end = end;
-	msg.q_cmd_options.map_name = map_name;
-	msg.q_cmd_options.memory_name = memory_name;
+	msg.q_cmd_options->plugin_name =plugin_name;
+	msg.q_cmd_options->start = start;
+	msg.q_cmd_options->end = end;
+	msg.q_cmd_options->map_name = map_name;
+	msg.q_cmd_options->memory_name = memory_name;
 }
 
 void ClientSocket::BuildLoadPluginMsgMapReplay(SockMessage& msg, Plugins plugin_name, string start, string memory_name, string map_name) {
 	msg.q_cmd = cLoadPlugin;
 	msg.need_response = false;
-	msg.q_cmd_options.plugin_name =plugin_name;
-	msg.q_cmd_options.start = start;
-	msg.q_cmd_options.map_name = map_name;
-	msg.q_cmd_options.memory_name = memory_name;
+	msg.q_cmd_options->plugin_name =plugin_name;
+	msg.q_cmd_options->start = start;
+	msg.q_cmd_options->map_name = map_name;
+	msg.q_cmd_options->memory_name = memory_name;
 }
 
 
 void ClientSocket::BuildUnloadPluginMsg(SockMessage& msg, unsigned int idx) {
 	msg.q_cmd = cUnloadPlugin;
 	msg.need_response = false;
-	msg.q_cmd_options.id = idx;
+	msg.q_cmd_options->id = idx;
 }
 
 SockError ClientSocket::SendCommand(const SockMessage& msg) {
