@@ -298,7 +298,7 @@ extern "C" bool init_plugin(void *self) {
     std::cout << "about to open/create shared memory" << std::endl;
     segment = managed_shared_memory(open_or_create,
                                  memory_name,  //segment name
-                                 1900000*sizeof(std::pair<char*,struct write_data_st>));
+                                 19000000*sizeof(std::pair<char*,struct write_data_st>));
     std::cout << "successfully opened/created memory" << std::endl;
 
 

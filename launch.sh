@@ -15,5 +15,5 @@ else
 fi
 
 echo "Launching Qemu emulator. Login to your VM now.."
-../panda/x86_64-softmmu/qemu-system-x86_64 -drive file=$drive_path,format=qcow2 -m $memory -monitor tcp::4444,server,nowait -net user,hostfwd=tcp::2222-:22 -net nic $options
+../panda/x86_64-softmmu/qemu-system-x86_64 -drive file=$drive_path,format=qcow2 -m $memory -monitor tcp::4443,server,nowait -net user,hostfwd=tcp::2221-:22 -net nic $options
 
