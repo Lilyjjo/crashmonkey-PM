@@ -470,6 +470,7 @@ int main(int argc, char** argv) {
         msg = SockMessage();
         //don't have name var for non-mount snapshot maps, should make/use standard naming convention?
         vm->BuildLoadPluginMsgMapReplay(msg, pReplayMap, begin_replay_addr, mount_memory_name, mount_map_name);
+        cout << "before replayer map run in main\n" << endl;
 
         if (vm->SendCommand(msg) != eNone ) {
                 int err_no = errno;
@@ -477,7 +478,7 @@ int main(int argc, char** argv) {
                 return -1;
         }
         vm->ReceiveReply(msg);
-
+        cout << "after replayer map run in main\n" << endl;
 
 	/***********************************************************
 	* 6. Unload the replay plugin
@@ -492,6 +493,7 @@ int main(int argc, char** argv) {
                 return -1;
         }
         vm->ReceiveReply(msg);
+        cout << "after replayer map unload run in main\n" << endl;
 
 
 	/***********************************************************

@@ -86,8 +86,8 @@ extern "C" bool init_plugin(void *self) {
     std::cout << "hardcoded workload_map opened\n" << std::hex << base << std::endl;
 
 
-    print_snapshot_map(named_map);
-    print_snapshot_map(workload_map);
+// when these run they don't ever finish printing for NOVA (other ones i'm not sure if they finish either)    print_snapshot_map(named_map);
+//    print_snapshot_map(workload_map);
 
     std::cout << "about to put stuff into panda\n" << std::endl;
     
@@ -100,8 +100,11 @@ extern "C" bool init_plugin(void *self) {
     std::cout << "finished destroying the maps" << std::endl;
 
     std::cout << "about to remove shared memory" << std::endl;
-    shared_memory_object::remove(memory_name);
-    std::cout << "removed shared memory" << std::endl;
+    if(shared_memory_object::remove(memory_name))
+        std::cout << "removed shared memory" << std::endl;
+    else
+        std::cout << "FAILED to removed shared memory" << std::endl;
+
     return true;
 }
 
