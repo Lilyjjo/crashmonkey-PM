@@ -404,7 +404,7 @@ int main(int argc, char** argv) {
 			}
 
 		}
-		else {`
+		else {
 			int change_fd;
 			if (checkpoint == 0) {
 				change_fd = open(kChangePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
@@ -484,6 +484,7 @@ int main(int argc, char** argv) {
 			pm_tester.cleanup_harness();
 			return -1;
 		}
+	}
 
 
 	// umount the record device
