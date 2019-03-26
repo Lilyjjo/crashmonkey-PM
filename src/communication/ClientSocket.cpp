@@ -104,7 +104,7 @@ SockError ClientSocket::SendCommand(const SockMessage& msg) {
 	
 	// Get the command and the arguments
 	QemuCommand cmd = msg.q_cmd;
-	CommandOpts options = msg.q_cmd_options;
+	CommandOpts options = *(msg.q_cmd_options);
 
 	// Based on the command, build the actual message now
 	string complete_command;
