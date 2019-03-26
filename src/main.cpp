@@ -251,6 +251,24 @@ int main(int argc, char** argv) {
 		pm_tester.cleanup_harness();
 		return -1;
 	}
+
+	//*** New code for unloading mount tracker plugin
+
+
+	msg = SockMessage();
+	vm->BuildUnloadPluginMsg(msg, 0);
+	
+	if (vm->SendCommand(msg) != eNone ) {
+		int err_no = errno;
+		cout << "Error sending message" << endl;
+		return -1;
+	}
+	vm->ReceiveReply(msg);
+
+	//end new code for unloading mount tracker 
+
+	cout << "mkfs/mounting complete, unloaded mount_tracker around mkfs/mount command\n" << endl;
+
 	auto stop_mount = high_resolution_clock::now();
 	auto duration_mount = duration_cast<microseconds>(stop_mount - start_mount);
 	cout << "Time taken by mount tracker: " << duration_mount.count() << " microseconds" << endl; 
@@ -263,6 +281,8 @@ int main(int argc, char** argv) {
 	// TODO: Ask about this in the NOVA mailing list	
 	// umount the device
 
+	/*
+
 	if (fs.compare("NOVA") == 0) {
 		cout << "Unmount the record device" << endl;
 		if (pm_tester.umount_device() != SUCCESS) {
@@ -270,24 +290,13 @@ int main(int argc, char** argv) {
 			pm_tester.cleanup_harness();
 			return -1;
 		}
-	}
+	} */
 
 
 	// Snapshot the initial FS image
 
 
-	//*** New code for unloading mount tracker plugin
-	msg = SockMessage();
-	vm->BuildUnloadPluginMsg(msg, 0);
 	
-	if (vm->SendCommand(msg) != eNone ) {
-		int err_no = errno;
-		cout << "Error sending message" << endl;
-		return -1;
-	}
-	vm->ReceiveReply(msg);
-	cout << "mkfs/mounting complete, unloaded mount_tracker around mkfs/mount command\n" << endl;
-    //*** end new code
 
     /*** Old snap shot code 
 
@@ -313,7 +322,7 @@ int main(int argc, char** argv) {
 	//cmd = "scripts/apply_snapshot.sh " + to_string(record_size);
 	//system(cmd.c_str());
 
-	*** end old snapshot code*/
+	*** end old snapshot code
 
 	// if the FS is NOVA, we have unmounted it
 	// before capturing snapshot. 
@@ -324,7 +333,7 @@ int main(int argc, char** argv) {
 			pm_tester.cleanup_harness();
 			return -1;
 		}
-	}
+	} */
 
 
 
@@ -447,6 +456,16 @@ int main(int argc, char** argv) {
 	* 	will be in a file named wt.out on the remote host.  
 	************************************************************/
 
+	//unmount NOVA so we can mount pmem1 during test_check
+	if (fs.compare("NOVA") == 0) {
+		cout << "Unmount the record device" << endl;
+		if (pm_tester.umount_device() != SUCCESS) {
+			cerr << "Error unmounting device" << endl;
+			pm_tester.cleanup_harness();
+			return -1;
+		}
+	} 
+
 	msg = SockMessage();
 	vm->BuildUnloadPluginMsg(msg, 0);
 	
@@ -457,6 +476,14 @@ int main(int argc, char** argv) {
 	}
 	//sleep(1);
 	vm->ReceiveReply(msg);
+
+	//remount NOVA since we unmounted it so pmem1 can mount later? 
+	if (fs.compare("NOVA") == 0) {
+		if (pm_tester.mount_device(record_device_path, mnt) != SUCCESS) {
+			cerr << "Error mounting the record device" << endl;
+			pm_tester.cleanup_harness();
+			return -1;
+		}
 
 
 	// umount the record device
