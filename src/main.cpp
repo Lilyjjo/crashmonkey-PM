@@ -222,7 +222,7 @@ int main(int argc, char** argv) {
 	************************************************************/
 	
 
-	//*** New code for snapshot of mount command, starts write tracker plugin:
+	//*** New code for snapshot of mount command, starts mount tracker plugin:
 	SockMessage msg;
 	msg = SockMessage();
 	string mount_map_name("mount_map");
@@ -255,27 +255,13 @@ int main(int argc, char** argv) {
 	auto duration_mount = duration_cast<microseconds>(stop_mount - start_mount);
 	cout << "Time taken by mount tracker: " << duration_mount.count() << " microseconds" << endl; 
 
-	//*** New code for unloading write tracker plugin
-	msg = SockMessage();
-	vm->BuildUnloadPluginMsg(msg, 0);
 	
-	if (vm->SendCommand(msg) != eNone ) {
-		int err_no = errno;
-		cout << "Error sending message" << endl;
-		return -1;
-	}
-	vm->ReceiveReply(msg);
-	cout << "mkfs/mounting complete, unloaded mount_tracker around mkfs/mount command\n" << endl;
-    //*** end new code
 
 	// FOr some reason, NOVA fails to mount if we dont snapshot
 	// after the unmount. FOr now include unmount in the inital snapshot
 	// only for NOVA
 	// TODO: Ask about this in the NOVA mailing list	
 	// umount the device
-	
-	/*** New code: commenting out snap shots:
-
 
 	if (fs.compare("NOVA") == 0) {
 		cout << "Unmount the record device" << endl;
@@ -288,6 +274,22 @@ int main(int argc, char** argv) {
 
 
 	// Snapshot the initial FS image
+
+
+	//*** New code for unloading mount tracker plugin
+	msg = SockMessage();
+	vm->BuildUnloadPluginMsg(msg, 0);
+	
+	if (vm->SendCommand(msg) != eNone ) {
+		int err_no = errno;
+		cout << "Error sending message" << endl;
+		return -1;
+	}
+	vm->ReceiveReply(msg);
+	cout << "mkfs/mounting complete, unloaded mount_tracker around mkfs/mount command\n" << endl;
+    //*** end new code
+
+    /*** Old snap shot code 
 
 
 	if (pm_tester.snapshot_device() != SUCCESS) {
@@ -311,6 +313,8 @@ int main(int argc, char** argv) {
 	//cmd = "scripts/apply_snapshot.sh " + to_string(record_size);
 	//system(cmd.c_str());
 
+	*** end old snapshot code*/
+
 	// if the FS is NOVA, we have unmounted it
 	// before capturing snapshot. 
 	// SO mount it bak again for workload execution
@@ -322,8 +326,6 @@ int main(int argc, char** argv) {
 		}
 	}
 
-
-	*** end of commenting out snapshots*/ 
 
 
 	cout << "Mounted file system. Ready for workload execution" << endl;
