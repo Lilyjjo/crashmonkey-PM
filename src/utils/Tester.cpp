@@ -171,15 +171,20 @@ vector<milliseconds> Tester::test_check(const string device_path, ofstream &log)
 	// the replay_device is in an unmounted state.
 	//
 	// So first check if the filesystem is mountable
+
+	cout << "In test_check, about to run consistnecy checks" << endl;
 	
 	time_point<steady_clock> mount_start_time = steady_clock::now();
 	if (mount_device(device_path, MNT_POINT_REPLAY) != SUCCESS) {
 		test_info.fs_test.SetError(FileSystemTestResult::kKernelMount);
+		cout << "error with mounting replay device! exiting test_check" << endl;
 		return res;
 	}
 
 	if (mount_device(record_device_path, MNT_POINT_RECORD) != SUCCESS) {
 		test_info.fs_test.SetError(FileSystemTestResult::kKernelMount);
+
+		cout << "error with mounting record device! exiting test_check" << endl;
 		return res;
 	}
 
