@@ -484,6 +484,7 @@ int main(int argc, char** argv) {
 			pm_tester.cleanup_harness();
 			return -1;
 		}
+	}
 
 
 	// umount the record device
