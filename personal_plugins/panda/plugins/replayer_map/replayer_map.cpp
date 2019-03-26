@@ -62,7 +62,7 @@ void replay_map(MyMap *map, target_ulong base) {
 
 extern "C" bool init_plugin(void *self) {
     panda_arg_list *args = panda_get_args("replayer_map");
-    auto base = panda_parse_ulong_opt(args, "base", 0x40000000, "Base physical address to replay at");
+    auto base = panda_parse_ulong_opt(args, "base", 0x48000000, "Base physical address to replay at");
     map_name = panda_parse_string_opt(args, "map_name", "ERROR", "Name of map to store writes in");  
     memory_name = panda_parse_string_opt(args, "memory_name", "ERROR", "Name of memory region to find objects in");  
 

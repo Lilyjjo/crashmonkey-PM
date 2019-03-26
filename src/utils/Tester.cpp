@@ -124,7 +124,9 @@ int Tester::restore_snapshot() {
 
 int Tester::mount_device(string device_path, string mount_point) {
 	string command = fs_commands_->GetMountCommand(device_path, mount_point);
-	if (system(command.c_str()) != 0) {
+	int err = system(command.c_str());
+	if (err != 0) {
+		cout << "error with mount_device system call, error number from system command call: " << err << "\n" << endl;
 		return MNT_ERR;
 	}
 	return SUCCESS;
