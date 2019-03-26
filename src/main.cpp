@@ -270,8 +270,8 @@ int main(int argc, char** argv) {
 	cout << "mkfs/mounting complete, unloaded mount_tracker around mkfs/mount command\n" << endl;
 
 	auto stop_mount = high_resolution_clock::now();
-	auto duration_mount = duration_cast<seconds>(stop_mount - start_mount);
-	cout << "Time taken by mount tracker: " << duration_mount.count() << " seconds" << endl; 
+	auto duration_mount = duration_cast<microseconds>(stop_mount - start_mount);
+	cout << "Time taken by mount tracker: " << duration_mount.count() << " microseconds" << endl; 
 
 	
 
@@ -404,7 +404,7 @@ int main(int argc, char** argv) {
 			}
 
 		}
-		else {
+		else {`
 			int change_fd;
 			if (checkpoint == 0) {
 				change_fd = open(kChangePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
@@ -444,8 +444,8 @@ int main(int argc, char** argv) {
 	}while(!last_checkpoint);
 
 	auto stop_workload = high_resolution_clock::now();
-	auto duration_wl = duration_cast<seconds>(stop_workload - start_workload);
-	cout << "Time taken to run the workload and all the checkpoints: " << duration_wl.count() << " seconds" << endl;
+	auto duration_wl = duration_cast<microseconds>(stop_workload - start_workload);
+	cout << "Time taken to run the workload and all the checkpoints: " << duration_wl.count() << " microseconds" << endl;
 
 
 	/***********************************************************
@@ -484,7 +484,6 @@ int main(int argc, char** argv) {
 			pm_tester.cleanup_harness();
 			return -1;
 		}
-	}
 
 
 	// umount the record device
@@ -546,8 +545,8 @@ int main(int argc, char** argv) {
 	auto start_replay = high_resolution_clock::now();
 	pm_tester.test_check(replay_device_path, log_file);
 	auto stop_replay = high_resolution_clock::now();
-	auto duration = duration_cast<seconds>(stop_replay - start_replay);
-	cout << "Time taken by replayer: " << duration.count() << " seconds" << endl;
+	auto duration = duration_cast<microseconds>(stop_replay - start_replay);
+	cout << "Time taken by replayer: " << duration.count() << " microseconds" << endl;
 
 	/***********************************************************
 	* 8. Cleanup and exit
