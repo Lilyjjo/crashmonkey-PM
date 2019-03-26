@@ -47,6 +47,7 @@ static constexpr char kChangePath[] = "run_changes";
 }
 
 using namespace communication;
+using namespace std::chrono;
 
 static bool verbose_flag;
 
@@ -243,11 +244,16 @@ int main(int argc, char** argv) {
 	//Format the record device and mount it
 	cout << "Formating record device " << record_device_path << endl;
 	log_file << "Formating record device " << record_device_path << endl;
+
+	auto start_mount = high_resolution_clock::now();
 	if (pm_tester.format_and_mount_device(record_device_path, mnt) != SUCCESS) {
 		cerr << "Error formating the record device" << endl;
 		pm_tester.cleanup_harness();
 		return -1;
 	}
+	auto stop_mount = high_resolution_clock::now();
+	auto duration_mount = duration_cast<microseconds>(stop_mount - start_mount);
+	cout << "Time taken by mount tracker: " << duration_mount.count() << " microseconds" << endl; 
 
 	//*** New code for unloading write tracker plugin
 	msg = SockMessage();
@@ -364,6 +370,7 @@ int main(int argc, char** argv) {
 	bool last_checkpoint = false;
 	int checkpoint = 0;
 
+	auto start_workload = high_resolution_clock::now(); 
 	do {
 		const pid_t child = fork();
 		if (child < 0) {
@@ -386,7 +393,7 @@ int main(int argc, char** argv) {
 			}
 
 		}
-		else {
+		else {`
 			int change_fd;
 			if (checkpoint == 0) {
 				change_fd = open(kChangePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
@@ -424,6 +431,10 @@ int main(int argc, char** argv) {
 		last_checkpoint = true;
 		cout << "Is it last checkpoint ? " << last_checkpoint << endl;
 	}while(!last_checkpoint);
+
+	auto stop_workload = high_resolution_clock::now();
+	auto duration_wl = duration_cast<microseconds>(stop_workload - start_workload);
+	cout << "Time taken to run the workload and all the checkpoints: " << duration_wl.count() << " microseconds" << endl;
 
 
 	/***********************************************************
@@ -501,7 +512,12 @@ int main(int argc, char** argv) {
 	************************************************************/
 	// At point both record and replay
 	// devices are not mounted.
+	
+	auto start_replay = high_resolution_clock::now();
 	pm_tester.test_check(replay_device_path, log_file);
+	auto stop_replay = high_resolution_clock::now();
+	auto duration = duration_cast<microseconds>(stop_replay - start_replay);
+	cout << "Time taken by replayer: " << duration.count() << " microseconds" << endl;
 
 	/***********************************************************
 	* 8. Cleanup and exit
