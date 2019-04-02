@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
 	// Let's set some default values if the user doesn't provide args
 	string remote_ip("192.168.122.1");
 	//string remote_ip("127.0.0.1");
-	unsigned int remote_port = 4443;
+	unsigned int remote_port = 4442;
 	string begin_trace_addr(DEFAULT_START_ADDR);
 	string end_trace_addr(DEFAULT_END_ADDR);
 	string begin_replay_addr(DEFAULT_REPLAY_START_ADDR);
@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
 	SockMessage msg;
 	msg = SockMessage();
 	string mount_map_name("mount_map");
-	string mount_memory_name("x14");
+	string mount_memory_name("x17");
 	vm->BuildLoadPluginMsgMapTracker(msg, pMounttracker, begin_trace_addr, end_trace_addr, mount_memory_name, mount_map_name);
 	
 	if (vm->SendCommand(msg) != eNone ) {
@@ -404,7 +404,7 @@ int main(int argc, char** argv) {
 			}
 
 		}
-		else {`
+		else {
 			int change_fd;
 			if (checkpoint == 0) {
 				change_fd = open(kChangePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
@@ -485,7 +485,7 @@ int main(int argc, char** argv) {
 			return -1;
 		}
 
-
+	}
 	// umount the record device
 	cout << "Unmount the record device" << endl;
 	if (pm_tester.umount_device() != SUCCESS) {
