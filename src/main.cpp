@@ -172,6 +172,8 @@ int main(int argc, char** argv) {
 
 	cout << " Testing : " << test_case_name << endl;
 
+	auto start_time = high_resolution_clock::now();
+
 	// create a log file
     	auto t = time(nullptr);
     	auto tm = *localtime(&t);
@@ -252,6 +254,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
+	auto stop_mount = high_resolution_clock::now();
 	//*** New code for unloading mount tracker plugin
 
 
@@ -548,6 +551,10 @@ int main(int argc, char** argv) {
 	auto stop_replay = high_resolution_clock::now();
 	auto duration = duration_cast<microseconds>(stop_replay - start_replay);
 	cout << "Time taken by replayer: " << duration.count() << " microseconds" << endl;
+
+
+	auto full_duration = duration_cast<microseconds>(stop_replay - start_time);
+	cout << "Time taken for the whole test to run: " << full_duration.count() << " microseconds" << endl;
 
 	/***********************************************************
 	* 8. Cleanup and exit
