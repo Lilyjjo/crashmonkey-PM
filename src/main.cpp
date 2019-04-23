@@ -248,7 +248,7 @@ int main(int argc, char** argv) {
 			return -1;
 		}
 	}
-
+ 
 
 	// Snapshot the initial FS image
 	if (pm_tester.snapshot_device() != SUCCESS) {
