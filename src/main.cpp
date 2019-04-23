@@ -228,7 +228,39 @@ int main(int argc, char** argv) {
 	SockMessage msg;
 	msg = SockMessage();
 	string mount_map_name("mount_map");
-	string mount_memory_name("x14");
+	string mount_memory_name("x23");
+
+
+	string mnt = "/mnt/pmem0";
+	FSCommands *fs_command_ = NULL;
+	fs_command_ = GetFSCommands(fs);
+	//Format the record device and mount it
+	cout << "Formating record device " << record_device_path << endl;
+	log_file << "Formating record device " << record_device_path << endl;
+
+	if (pm_tester.format_and_mount_device(record_device_path, mnt) != SUCCESS) {
+		cerr << "Error formating the record device" << endl;
+		pm_tester.cleanup_harness();
+		return -1;
+	}
+
+	//*** New code for unloading mount tracker plugin
+
+	//end new code for unloading mount tracker 
+
+
+	// umount the record device, and then remount it, 
+	// so that we can time just the mount and not the formatting
+	cout << "Unmount the record device" << endl;
+	if (pm_tester.umount_device() != SUCCESS) {
+		cerr << "Error unmounting device" << endl;
+		pm_tester.cleanup_harness();
+		return -1;
+	}
+
+	// Time just the mount
+	auto start_mount = high_resolution_clock::now();	
+
 	vm->BuildLoadPluginMsgMapTracker(msg, pMounttracker, begin_trace_addr, end_trace_addr, mount_memory_name, mount_map_name);
 	
 	if (vm->SendCommand(msg) != eNone ) {
@@ -238,26 +270,15 @@ int main(int argc, char** argv) {
 	}
 	vm->ReceiveReply(msg);
 	cout << "loaded write tracker plugin for mkfs/mount phase\n" << endl;
-    //*** end new code
 
-	string mnt = "/mnt/pmem0";
-	FSCommands *fs_command_ = NULL;
-	fs_command_ = GetFSCommands(fs);
-	//Format the record device and mount it
-	cout << "Formating record device " << record_device_path << endl;
-	log_file << "Formating record device " << record_device_path << endl;
-
-	auto start_mount = high_resolution_clock::now();
-	if (pm_tester.format_and_mount_device(record_device_path, mnt) != SUCCESS) {
-		cerr << "Error formating the record device" << endl;
+	// Mount the record device
+	if (pm_tester.mount_device(record_device_path, mnt) != SUCCESS) {
+		cerr << "Error mounting the record device" << endl;
 		pm_tester.cleanup_harness();
 		return -1;
 	}
 
-	auto stop_mount = high_resolution_clock::now();
-	//*** New code for unloading mount tracker plugin
-
-
+	// Unload mount tracker	
 	msg = SockMessage();
 	vm->BuildUnloadPluginMsg(msg, 0);
 	
@@ -268,15 +289,12 @@ int main(int argc, char** argv) {
 	}
 	vm->ReceiveReply(msg);
 
-	//end new code for unloading mount tracker 
-
-	cout << "mkfs/mounting complete, unloaded mount_tracker around mkfs/mount command\n" << endl;
 
 	auto stop_mount = high_resolution_clock::now();
 	auto duration_mount = duration_cast<microseconds>(stop_mount - start_mount);
-	cout << "Time taken by mount tracker: " << duration_mount.count() << " microseconds" << endl; 
+	cout << "Time taken by mount tracker: " << duration_mount.count() << " microseconds" << endl; 	
 
-	
+	cout << "mkfs/mounting complete, unloaded mount_tracker around mkfs/mount command\n" << endl;
 
 	// FOr some reason, NOVA fails to mount if we dont snapshot
 	// after the unmount. FOr now include unmount in the inital snapshot
