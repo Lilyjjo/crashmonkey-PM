@@ -47,6 +47,7 @@ static constexpr char kChangePath[] = "run_changes";
 }
 
 using namespace communication;
+using namespace std::chrono;
 
 static bool verbose_flag;
 
@@ -63,6 +64,9 @@ static struct option harness_options[] = {
 };
 
 int main(int argc, char** argv) {
+
+	
+	auto start_total = high_resolution_clock::now();
 
 	// Let's set some default values if the user doesn't provide args
 	string remote_ip("192.168.122.1");
@@ -219,6 +223,9 @@ int main(int argc, char** argv) {
 	/***********************************************************
 	* 2. Format and snapshot the initial record device
 	************************************************************/
+		
+	auto start_mounting = high_resolution_clock::now();
+
 	
 	string mnt = "/mnt/pmem0";
 	FSCommands *fs_command_ = NULL;
@@ -280,7 +287,9 @@ int main(int argc, char** argv) {
 	}
 	cout << "Mounted file system. Ready for workload execution" << endl;
 	system("mount | grep pmem");
-
+	
+	
+	auto stop_mounting = high_resolution_clock::now();
 
 	//TODO: Not including the mount traffic, results in journal recovery failure
 	// in ext4. But if included, NOVA results in corruption.
@@ -296,7 +305,8 @@ int main(int argc, char** argv) {
 	* 	reply string for error messages? But I need to
 	* 	insert a sec of sleep to read the contents  
 	************************************************************/
-
+	
+	auto start_write_plugin = high_resolution_clock::now();
 
 	SockMessage msg;
 	vm->BuildLoadPluginMsg(msg, pWritetracker, begin_trace_addr, end_trace_addr);
@@ -315,8 +325,7 @@ int main(int argc, char** argv) {
 	//dummy workload for now
 	//system("./workload seq 4K 4K overwrite 1");
 	//system("./workload seq 1 4K");
-	system("./workload");
-
+	//system("./workload");
 
 	cout << "Running j-lang test profile" << endl;
 	bool last_checkpoint = false;
@@ -413,6 +422,8 @@ int main(int argc, char** argv) {
 	}
 
 
+	auto stop_write_plugin = high_resolution_clock::now();
+
 	/***********************************************************
 	* 5. Load the replay plugin
 	* 	This plugin should replay the serialized 
@@ -425,6 +436,7 @@ int main(int argc, char** argv) {
 	*	that the replay is complete, when we receive
 	*	EOF
 	************************************************************/
+	auto start_replayer_plugin = high_resolution_clock::now();
         msg = SockMessage();
         vm->BuildLoadPluginMsg(msg, pReplay, begin_replay_addr, end_trace_addr);
 
@@ -450,7 +462,8 @@ int main(int argc, char** argv) {
         }
         vm->ReceiveReply(msg);
 
-
+	
+	auto stop_replayer_plugin = high_resolution_clock::now();
 	/***********************************************************
 	* 7. Perform consistency tests
 	************************************************************/
@@ -469,6 +482,20 @@ int main(int argc, char** argv) {
 	
 	// generalize the umount function in Tester
 	system("umount /mnt/pmem1");
+
+	
+	auto stop_total = high_resolution_clock::now();
+	
+	// print out timing data:
+	auto total_duration = duration_cast<microseconds>(stop_total - start_total);
+	auto mounting_duration = duration_cast<microseconds>(stop_mounting - start_mounting);
+	auto write_plugin_duration = duration_cast<microseconds>(stop_write_plugin - start_write_plugin);
+	auto replayer_plugin_duration = duration_cast<microseconds>(stop_replayer_plugin - start_replayer_plugin);
+	
+	cout << "Time taken for mounting: " << mounting_duration.count() << " microseconds " << endl;
+	cout << "Time taken for write plugin: " << write_plugin_duration.count() << " microseconds " << endl;
+	cout << "Time taken for replayer plugin: " << replayer_plugin_duration.count() << " microseconds " << endl;
+	cout << "Time taken for total run: " << total_duration.count() << " microseconds " << endl;
 	
 	return 0;
 
