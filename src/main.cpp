@@ -65,6 +65,8 @@ static struct option harness_options[] = {
 
 int main(int argc, char** argv) {
 
+	auto start_total = high_resolution_clock::now();
+
 	// Let's set some default values if the user doesn't provide args
 	string remote_ip("192.168.122.1");
 	//string remote_ip("127.0.0.1");
@@ -172,7 +174,6 @@ int main(int argc, char** argv) {
 
 	cout << " Testing : " << test_case_name << endl;
 
-	auto start_time = high_resolution_clock::now();
 
 	// create a log file
     	auto t = time(nullptr);
@@ -222,6 +223,8 @@ int main(int argc, char** argv) {
 	/***********************************************************
 	* 2. Format and snapshot the initial record device
 	************************************************************/
+
+	auto start_mounting = high_resolution_clock::now();
 	
 
 	//*** New code for snapshot of mount command, starts mount tracker plugin:
@@ -258,9 +261,6 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
-	// Time just the mount
-	auto start_mount = high_resolution_clock::now();	
-
 	vm->BuildLoadPluginMsgMapTracker(msg, pMounttracker, begin_trace_addr, end_trace_addr, mount_memory_name, mount_map_name);
 	
 	if (vm->SendCommand(msg) != eNone ) {
@@ -287,12 +287,7 @@ int main(int argc, char** argv) {
 		cout << "Error sending message" << endl;
 		return -1;
 	}
-	vm->ReceiveReply(msg);
-
-
-	auto stop_mount = high_resolution_clock::now();
-	auto duration_mount = duration_cast<microseconds>(stop_mount - start_mount);
-	cout << "Time taken by mount tracker: " << duration_mount.count() << " microseconds" << endl; 	
+	vm->ReceiveReply(msg);	
 
 	cout << "mkfs/mounting complete, unloaded mount_tracker around mkfs/mount command\n" << endl;
 
@@ -361,6 +356,8 @@ int main(int argc, char** argv) {
 	cout << "Mounted file system. Ready for workload execution" << endl;
 	system("mount | grep pmem");
 
+	auto stop_mounting = high_resolution_clock::now();
+
 
 	//TODO: Not including the mount traffic, results in journal recovery failure
 	// in ext4. But if included, NOVA results in corruption.
@@ -376,6 +373,9 @@ int main(int argc, char** argv) {
 	* 	reply string for error messages? But I need to
 	* 	insert a sec of sleep to read the contents  
 	************************************************************/
+	auto start_write_plugin = high_resolution_clock::now();
+
+
  	msg = SockMessage();
 	string workload_map_name("workload_map");
 	//currently using same shared memory map as mount write tracker, workload map is hard coded in replayer rn
@@ -402,7 +402,6 @@ int main(int argc, char** argv) {
 	bool last_checkpoint = false;
 	int checkpoint = 0;
 
-	auto start_workload = high_resolution_clock::now(); 
 	do {
 		const pid_t child = fork();
 		if (child < 0) {
@@ -464,10 +463,6 @@ int main(int argc, char** argv) {
 		cout << "Is it last checkpoint ? " << last_checkpoint << endl;
 	}while(!last_checkpoint);
 
-	auto stop_workload = high_resolution_clock::now();
-	auto duration_wl = duration_cast<microseconds>(stop_workload - start_workload);
-	cout << "Time taken to run the workload and all the checkpoints: " << duration_wl.count() << " microseconds" << endl;
-
 
 	/***********************************************************
 	* 4. UnLoad the writetracker plugin
@@ -516,6 +511,8 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
+	auto stop_write_plugin = high_resolution_clock::now();
+
 
 	/***********************************************************
 	* 5. Load the replay plugin
@@ -529,6 +526,7 @@ int main(int argc, char** argv) {
 	*	that the replay is complete, when we receive
 	*	EOF
 	************************************************************/
+		auto start_replayer_plugin = high_resolution_clock::now();
         msg = SockMessage();
         //don't have name var for non-mount snapshot maps, should make/use standard naming convention?
         vm->BuildLoadPluginMsgMapReplay(msg, pReplayMap, begin_replay_addr, mount_memory_name, mount_map_name);
@@ -557,22 +555,15 @@ int main(int argc, char** argv) {
         vm->ReceiveReply(msg);
         cout << "after replayer map unload run in main\n" << endl;
 
-
+        auto stop_replayer_plugin = high_resolution_clock::now();
 	/***********************************************************
 	* 7. Perform consistency tests
 	************************************************************/
 	// At point both record and replay
 	// devices are not mounted.
 	
-	auto start_replay = high_resolution_clock::now();
 	pm_tester.test_check(replay_device_path, log_file);
-	auto stop_replay = high_resolution_clock::now();
-	auto duration = duration_cast<microseconds>(stop_replay - start_replay);
-	cout << "Time taken by replayer: " << duration.count() << " microseconds" << endl;
 
-
-	auto full_duration = duration_cast<microseconds>(stop_replay - start_time);
-	cout << "Time taken for the whole test to run: " << full_duration.count() << " microseconds" << endl;
 
 	/***********************************************************
 	* 8. Cleanup and exit
@@ -585,6 +576,22 @@ int main(int argc, char** argv) {
 	
 	// generalize the umount function in Tester
 	system("umount /mnt/pmem1");
+
+	auto stop_total = high_resolution_clock::now();
+
+	// print out timing data:
+    auto total_duration = duration_cast<microseconds>(stop_total - start_total);
+    auto mounting_duration = duration_cast<microseconds>(stop_mounting - start_mounting);
+    auto write_plugin_duration = duration_cast<microseconds>(stop_write_plugin - start_write_plugin);
+    auto replayer_plugin_duration = duration_cast<microseconds>(stop_replayer_plugin - start_replayer_plugin);
+
+    cout << "Time taken for mounting: " << mounting_duration.count() << " microseconds " << endl;
+    cout << "Time taken for write plugin: " << write_plugin_duration.count() << " microseconds " << endl;
+    cout << "Time taken for replayer plugin: " << replayer_plugin_duration.count() << " microseconds " << endl;
+    cout << "Time taken for total run: " << total_duration.count() << " microseconds " << endl;
+
+
+
 	
 	return 0;
 
