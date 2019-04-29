@@ -14,6 +14,8 @@ static target_ulong range_start;
 static target_ulong range_end;
 char map_name[15];
 char memory_name[15];
+long flush_count;
+long write_count;
 
 static std::ofstream ofs;
 
@@ -58,29 +60,36 @@ static void log_output(target_ulong pc, event_type type, target_ulong offset, ta
   switch (type) {
   case WRITE: {
     // ******* New code:
-    auto map_iterator = snapshot_map->find(reinterpret_cast<char*>(offset));
-    if (map_iterator == snapshot_map->end()){
-        //key not yet in map, add it
-        //put data into write_data_st 
-        write_data_st wdst;
-        wdst.data_length = (size_t) write_size;
-        wdst.is_flushed = false;
-        memcpy(&(wdst.data), reinterpret_cast<char*>(write_data), write_size);
-        snapshot_map->insert(std::pair< char *, struct write_data_st>(reinterpret_cast< char*>(offset), wdst));
-    } else {      
-        //key in map, just modify it
-        write_data_st *wdst = &(map_iterator->second);
-        wdst->data_length = (size_t) write_size;
-        memcpy(&(wdst->data), reinterpret_cast<char*>(write_data), write_size);
-      }
-    // **********
+    if(write_size != 0){
+      std::cout << "size of write: " << write_size << std::endl;
+      write_count++;
+      auto map_iterator = snapshot_map->find(reinterpret_cast<char*>(offset));
+      if (map_iterator == snapshot_map->end()){
+          //key not yet in map, add it
+          //put data into write_data_st 
+          write_data_st wdst;
+          wdst.data_length = (size_t) write_size;
+          wdst.is_flushed = false;
+          memcpy(&(wdst.data), reinterpret_cast<char*>(write_data), write_size);
+          snapshot_map->insert(std::pair< char *, struct write_data_st>(reinterpret_cast< char*>(offset), wdst));
+      } else {      
+          //key in map, just modify it
+          write_data_st *wdst = &(map_iterator->second);
+          wdst->data_length = (size_t) write_size;
+          memcpy(&(wdst->data), reinterpret_cast<char*>(write_data), write_size);
+        }
+      // **********
 
-    output->write(reinterpret_cast<char*>(&offset), sizeof(offset));
-    output->write(reinterpret_cast<char*>(&write_size), sizeof(write_size));
-    output->write(reinterpret_cast<char*>(write_data), write_size);
+      output->write(reinterpret_cast<char*>(&offset), sizeof(offset));
+      output->write(reinterpret_cast<char*>(&write_size), sizeof(write_size));
+      output->write(reinterpret_cast<char*>(write_data), write_size);
+  }
     break;
   }
   case FLUSH: {
+
+    std::cout << "size of flush: " << write_size << std::endl;
+    flush_count++;
     //check to see if already in map or not
     auto map_iterator = snapshot_map->find(reinterpret_cast< char*>(offset));
     if (map_iterator == snapshot_map->end()){
@@ -262,6 +271,8 @@ extern "C" bool init_plugin(void *self) {
     std::cout << "tracking range [" << std::hex << range_start << ", " << std::hex << range_end << ")" << std::endl;
     std::cout << "shared memory name: " << memory_name << std::endl; 
     std::cout << "map name: " << map_name << std::endl; 
+    write_count = 0;
+    flush_count = 0;
 
     panda_do_flush_tb();
     // Need this to get EIP with our callbacks
@@ -322,7 +333,9 @@ extern "C" void uninit_plugin(void *self) {
 
     // Printing snapshot map
     //std::cout << "\n\n inside of uninit_plugin, about to print out map. \n" << std::endl;
-    //print_snapshot_map();
+    std::cout << "number of writes in mount: " << write_count << std::endl;
+    std::cout << "number of flushes in mount: " << flush_count << std::endl;
+    print_snapshot_map();
 
     //NOTE: shared memory is deleted inside of the replayer_map.cpp, 
     //      if that plugin isn't run then the shared memory isn't deleted 
